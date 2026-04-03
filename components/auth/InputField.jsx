@@ -7,6 +7,8 @@ export default function InputField({
   secureTextEntry = false,
   value,
   onChangeText,
+  error,
+  ...rest
 }) {
   const controlled = value !== undefined && onChangeText !== undefined;
 
@@ -17,6 +19,7 @@ export default function InputField({
       </Text>
 
       <TextInput
+        {...rest}
         placeholder={placeholder}
         placeholderTextColor={Colors.textMuted}
         secureTextEntry={secureTextEntry}
@@ -25,10 +28,16 @@ export default function InputField({
         style={{
           backgroundColor: Colors.surface,
           borderWidth: 1,
-          borderColor: Colors.cardBorder,
+          borderColor: error ? Colors.danger : Colors.cardBorder,
           color: Colors.textPrimary,
         }}
       />
+
+      {error ? (
+        <Text style={{ color: Colors.danger, fontSize: 12, marginTop: 6, fontWeight: "600" }}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }

@@ -10,7 +10,9 @@ import Colors from "../../constants/Colors";
 
 export default function HistorySolutionScreen() {
   const router = useRouter();
-  const { marks, imageCount } = useLocalSearchParams();
+  const { marks, imageCount, mode } = useLocalSearchParams();
+  const modeValue = mode === "image" ? "image" : "theory";
+  const modeLabel = modeValue === "image" ? "Image-based" : "Theory-based";
 
   return (
     <LinearGradient
@@ -30,7 +32,7 @@ export default function HistorySolutionScreen() {
           <ScreenHeader
             onBack={() => router.back()}
             title="Model answer"
-            subtitle={`Target: ${marks ?? "?"} marks${
+            subtitle={`${modeLabel} · Target: ${marks ?? "?"} marks${
               imageCount && Number(imageCount) > 0
                 ? ` · ${imageCount} source image${Number(imageCount) > 1 ? "s" : ""}`
                 : ""
@@ -48,7 +50,7 @@ export default function HistorySolutionScreen() {
           <View style={{ height: 16 }} />
 
           <View style={styles.answerWrap}>
-            <HistoryAnswerCard marks={marks} />
+            <HistoryAnswerCard marks={marks} mode={modeValue} />
           </View>
         </ScrollView>
       </SafeAreaView>

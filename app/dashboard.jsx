@@ -1,11 +1,12 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -29,9 +30,13 @@ const recent = [
 
 export default function Dashboard() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const authMessage = params?.authMessage;
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState("Abdullah Rana");
   const [photoUri, setPhotoUri] = useState("");
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showBanner, setShowBanner] = useState(Boolean(authMessage));
 
   useFocusEffect(
     useCallback(() => {
@@ -42,32 +47,27 @@ export default function Dashboard() {
     }, [])
   );
 
-  const handleLogout = async () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              // 1. Token delete karein
-              await AsyncStorage.removeItem("token");
+  useEffect(() => {
+    setShowBanner(Boolean(authMessage));
+    if (!authMessage) return;
+    const timer = setTimeout(() => setShowBanner(false), 2600);
+    return () => clearTimeout(timer);
+  }, [authMessage]);
 
-              // 2. React Query ka cache saaf karein (Zaruri hai!)
-              queryClient.clear();
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
 
-              // 3. Welcome ya Login screen par bhej dein
-              router.replace("/welcome");
-            } catch (error) {
-              Alert.alert("Error", "Logout nahi ho saka");
-            }
-          }
-        }
-      ]
-    );
+  const confirmLogout = async () => {
+    try {
+      await AsyncStorage.removeItem("token");
+      queryClient.clear();
+      setShowLogoutModal(false);
+      router.replace("/welcome");
+    } catch (_error) {
+      setShowLogoutModal(false);
+      Alert.alert("Error", "Logout nahi ho saka");
+    }
   };
 
   return (
@@ -85,6 +85,23 @@ export default function Dashboard() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28, paddingTop: 12 }}
         >
+          {showBanner ? (
+            <View
+              style={{
+                marginBottom: 18,
+                padding: 14,
+                borderRadius: 20,
+                backgroundColor: "rgba(79, 209, 197, 0.12)",
+                borderWidth: 1,
+                borderColor: "rgba(79, 209, 197, 0.35)",
+              }}
+            >
+              <Text style={{ color: Colors.accent, fontWeight: "800" }}>
+                {authMessage}
+              </Text>
+            </View>
+          ) : null}
+
           <View style={styles.topRow}>
             <Pressable
               onPress={() => router.push("/settings")}
@@ -255,6 +272,46 @@ export default function Dashboard() {
             </View>
           </Pressable>
         </ScrollView>
+
+        <Modal
+          visible={showLogoutModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowLogoutModal(false)}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Logout</Text>
+              <Text style={styles.modalText}>
+                Are you sure you want to logout?
+              </Text>
+
+              <View style={styles.modalActions}>
+                <Pressable
+                  onPress={() => setShowLogoutModal(false)}
+                  style={({ pressed }) => [
+                    styles.modalBtn,
+                    styles.modalBtnCancel,
+                    pressed && { opacity: 0.9 },
+                  ]}
+                >
+                  <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={confirmLogout}
+                  style={({ pressed }) => [
+                    styles.modalBtn,
+                    styles.modalBtnDanger,
+                    pressed && { opacity: 0.9 },
+                  ]}
+                >
+                  <Text style={styles.modalBtnDangerText}>Logout</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -432,5 +489,59 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontSize: 15,
     fontWeight: "700",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    borderRadius: 22,
+    padding: 18,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  modalTitle: {
+    color: Colors.white,
+    fontSize: 22,
+    fontWeight: "800",
+  },
+  modalText: {
+    color: Colors.textSecondary,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 8,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 20,
+    gap: 10,
+  },
+  modalBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  modalBtnCancel: {
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.surfaceAlt,
+  },
+  modalBtnDanger: {
+    borderColor: Colors.primaryDark,
+    backgroundColor: Colors.primary,
+  },
+  modalBtnCancelText: {
+    color: Colors.textSecondary,
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  modalBtnDangerText: {
+    color: Colors.white,
+    fontWeight: "800",
+    fontSize: 14,
   },
 });

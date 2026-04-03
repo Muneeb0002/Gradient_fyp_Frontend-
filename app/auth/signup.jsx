@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react"; 
 import {
   Image,
@@ -10,7 +10,6 @@ import {
   ScrollView,
   Text,
   View,
-  Alert, 
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,10 +17,13 @@ import AppDecor from "../../components/shared/AppDecor";
 import InputField from "../../components/auth/InputField";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import Colors from "../../constants/Colors";
+import { saveProfile } from "../../lib/storage";
 import { useSignup } from "../../src/hooks/useSignup.js";
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const authMessage = params?.authMessage;
 
   // Form State
   const [formData, setFormData] = useState({
@@ -32,57 +34,59 @@ export default function SignUpScreen() {
   });
 
   const { mutate, isPending } = useSignup();
+  const [errors, setErrors] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  });
+  const [serverError, setServerError] = useState("");
 
   const handleSignup = () => {
   const { firstName, lastName, email, password } = formData;
 
-  // 1. All Fields Empty Check
-  if (!firstName || !lastName || !email || !password) {
-    Alert.alert("Missing Fields", "All fields are required.");
-    return;
-  }
+    setServerError("");
 
-  // 2. Name Validation (Sirf alphabets allow honge)
-  const nameRegex = /^[a-zA-Z\s]+$/;
-  if (!nameRegex.test(firstName) || !nameRegex.test(lastName)) {
-    Alert.alert("Invalid Name", "Only letters (A-Z) allowed.");
-    return;
-  }
+    const nextErrors = { firstName: "", lastName: "", email: "", password: "" };
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const specialCharRegex = /[ #@$!%*?&]/;
 
-  if (firstName.length < 2 || lastName.length < 2) {
-    Alert.alert("Short Name", "Minimum 2 characters required.");
-    return;
-  }
+    if (!firstName) nextErrors.firstName = "First name is required.";
+    else if (!nameRegex.test(firstName)) nextErrors.firstName = "Only letters (A-Z) allowed.";
+    else if (firstName.length < 2) nextErrors.firstName = "Minimum 2 characters required.";
 
-  // 3. Email Validation (Regex)
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    Alert.alert("Invalid Email", " it is mandatory to fill in all the details.");
-    return;
-  }
+    if (!lastName) nextErrors.lastName = "Last name is required.";
+    else if (!nameRegex.test(lastName)) nextErrors.lastName = "Only letters (A-Z) allowed.";
+    else if (lastName.length < 2) nextErrors.lastName = "Minimum 2 characters required.";
 
-  const specialCharRegex = /[ #@$!%*?&]/; 
-  
-  if (password.length < 8) {
-    Alert.alert("Short Password", "Min. 8 chars pasword are required.");
-    return;
-  }
+    if (!email) nextErrors.email = "Email is required.";
+    else if (!emailRegex.test(email)) nextErrors.email = "Enter a valid email address.";
 
-  if (!specialCharRegex.test(password)) {
-    Alert.alert("Weak Password", " special character (@$!%*?&) is mandatory in the password.");
-    return;
-  }
+    if (!password) nextErrors.password = "Password is required.";
+    else if (password.length < 8) nextErrors.password = "Minimum 8 characters required.";
+    else if (!specialCharRegex.test(password))
+      nextErrors.password = "Add a special character (@$!%*?&).";
 
+    if (nextErrors.firstName || nextErrors.lastName || nextErrors.email || nextErrors.password) {
+      setErrors(nextErrors);
+      return;
+    }
 
+    setErrors({ firstName: "", lastName: "", email: "", password: "" });
 
-  // Agar saari validations pass ho jayein toh API call karein
   mutate(formData, {
-    onSuccess: () => {
-      router.replace("/onboarding");
+    onSuccess: async () => {
+      const fullName = `${firstName} ${lastName}`.trim();
+      await saveProfile({ displayName: fullName, email });
+      router.replace({
+        pathname: "/onboarding",
+        params: { authMessage: `${firstName} signup successful` },
+      });
     },
     onError: (err) => {
       const errorMsg = err.response?.data?.message || "Signup failed. Try again!";
-      Alert.alert("Signup Error", errorMsg);
+      setServerError(errorMsg);
     },
   });
 };
@@ -137,6 +141,21 @@ export default function SignUpScreen() {
               </Text>
             </View>
 
+            {authMessage ? (
+              <View
+                className="p-4 rounded-3xl mb-4"
+                style={{
+                  backgroundColor: "rgba(79, 209, 197, 0.12)",
+                  borderWidth: 1,
+                  borderColor: "rgba(79, 209, 197, 0.35)",
+                }}
+              >
+                <Text style={{ color: Colors.accent, fontWeight: "800" }}>
+                  {authMessage}
+                </Text>
+              </View>
+            ) : null}
+
             {/* Form Card */}
             <View
               className="p-5 rounded-3xl"
@@ -150,23 +169,35 @@ export default function SignUpScreen() {
                 label="First Name"
                 placeholder="Enter your first name"
                 value={formData.firstName}
-                onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+                onChangeText={(text) => {
+                  setFormData({ ...formData, firstName: text });
+                  setErrors((e) => ({ ...e, firstName: "" }));
+                }}
+                error={errors.firstName}
               />
 
               <InputField
                 label="Last Name"
                 placeholder="Enter your last name"
                 value={formData.lastName}
-                onChangeText={(text) => setFormData({ ...formData, lastName: text })}
+                onChangeText={(text) => {
+                  setFormData({ ...formData, lastName: text });
+                  setErrors((e) => ({ ...e, lastName: "" }));
+                }}
+                error={errors.lastName}
               />
 
               <InputField
                 label="Email Address"
                 placeholder="your.email@example.com"
                 value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                onChangeText={(text) => {
+                  setFormData({ ...formData, email: text });
+                  setErrors((e) => ({ ...e, email: "" }));
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                error={errors.email}
               />
 
               <InputField
@@ -174,7 +205,11 @@ export default function SignUpScreen() {
                 placeholder="Create a strong password"
                 secureTextEntry
                 value={formData.password}
-                onChangeText={(text) => setFormData({ ...formData, password: text })}
+                onChangeText={(text) => {
+                  setFormData({ ...formData, password: text });
+                  setErrors((e) => ({ ...e, password: "" }));
+                }}
+                error={errors.password}
               />
 
               <View className="mt-4">
@@ -184,6 +219,12 @@ export default function SignUpScreen() {
                   disabled={isPending}
                 />
               </View>
+
+              {serverError ? (
+                <Text style={{ color: Colors.danger, fontWeight: "700", marginBottom: 10 }}>
+                  {serverError}
+                </Text>
+              ) : null}
 
               {isPending && (
                 <ActivityIndicator

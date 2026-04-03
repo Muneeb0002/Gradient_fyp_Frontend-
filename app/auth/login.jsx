@@ -1,60 +1,72 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Image, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GoogleButton from "../../components/auth/GoogleButton";
 import InputField from "../../components/auth/InputField";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
 import Colors from "../../constants/Colors";
+import { getProfile } from "../../lib/storage";
 import { useLogin } from "../../src/hooks/useLogin.js";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const authMessage = params?.authMessage;
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
   const { mutate, isPending } = useLogin();
+  const [errors, setErrors] = useState({ email: "", password: "" });
+  const [serverError, setServerError] = useState("");
 
   const handleLogin = () => {
     const { email, password } = formData;
 
-    if (!email || !password) {
-      Alert.alert("Missing Fields", "Please enter both email and password.");
-      return;
-    }
+    setServerError("");
 
-
-    // 3. Email Validation (Regex)
+    const nextErrors = { email: "", password: "" };
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert("Invalid Email", " it is mandatory to fill in all the details.");
-      return;
-    }
-
     const specialCharRegex = /[ #@$!%*?&]/;
 
-    if (password.length < 6) {
-      Alert.alert("Short Password", "Min. 6 chars pasword are required.");
+    if (!email) nextErrors.email = "Email is required.";
+    else if (!emailRegex.test(email)) nextErrors.email = "Enter a valid email address.";
+
+    if (!password) nextErrors.password = "Password is required.";
+    else if (password.length < 6) nextErrors.password = "Minimum 6 characters required.";
+    else if (!specialCharRegex.test(password))
+      nextErrors.password = "Add a special character (@$!%*?&).";
+
+    if (nextErrors.email || nextErrors.password) {
+      setErrors(nextErrors);
       return;
     }
 
-    if (!specialCharRegex.test(password)) {
-      Alert.alert("Weak Password", " special character (@$!%*?&) is mandatory in the password.");
-      return;
-    }
+    setErrors({ email: "", password: "" });
 
     mutate(formData, {
-      onSuccess: () => {
-        router.replace("/dashboard");
+      onSuccess: async (data) => {
+        const apiFirstName =
+          data?.user?.firstName ||
+          data?.firstName ||
+          data?.user?.name?.split?.(" ")?.[0] ||
+          "";
+        const profile = await getProfile();
+        const fallbackFirstName = profile?.displayName?.split(" ")?.[0] || "User";
+        const firstNameToShow = apiFirstName || fallbackFirstName;
+        router.replace({
+          pathname: "/dashboard",
+          params: { authMessage: `${firstNameToShow} login successful` },
+        });
       },
       onError: (err) => {
         const errorMsg = err.response?.data?.message || "Login failed. Try again!";
-        Alert.alert("Login Error", errorMsg);
+        setServerError(errorMsg);
       },
     });
   };
@@ -96,6 +108,21 @@ export default function LoginScreen() {
           </Text>
         </View>
 
+        {authMessage ? (
+          <View
+            className="p-4 rounded-3xl mb-4"
+            style={{
+              backgroundColor: "rgba(79, 209, 197, 0.12)",
+              borderWidth: 1,
+              borderColor: "rgba(79, 209, 197, 0.35)",
+            }}
+          >
+            <Text style={{ color: Colors.accent, fontWeight: "800" }}>
+              {authMessage}
+            </Text>
+          </View>
+        ) : null}
+
         <View
           className="p-5 rounded-3xl"
           style={{
@@ -108,9 +135,13 @@ export default function LoginScreen() {
             label="Email Address"
             placeholder="your.email@example.com"
             value={formData.email}
-            onChangeText={(text) => setFormData({ ...formData, email: text })}
+            onChangeText={(text) => {
+              setFormData({ ...formData, email: text });
+              setErrors((e) => ({ ...e, email: "" }));
+            }}
             autoCapitalize="none"
             keyboardType="email-address"
+            error={errors.email}
           />
 
           <InputField
@@ -118,7 +149,11 @@ export default function LoginScreen() {
             placeholder="Enter your password"
             secureTextEntry
             value={formData.password}
-            onChangeText={(text) => setFormData({ ...formData, password: text })}
+            onChangeText={(text) => {
+              setFormData({ ...formData, password: text });
+              setErrors((e) => ({ ...e, password: "" }));
+            }}
+            error={errors.password}
           />
 
           <Pressable
@@ -127,6 +162,12 @@ export default function LoginScreen() {
           >
             <Text style={{ color: Colors.primary }}>Forgot password?</Text>
           </Pressable>
+
+          {serverError ? (
+            <Text style={{ color: Colors.danger, fontWeight: "700", marginBottom: 10 }}>
+              {serverError}
+            </Text>
+          ) : null}
 
           <PrimaryButton
             title={isPending ? "Logging in..." : "Login"}

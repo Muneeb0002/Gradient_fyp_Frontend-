@@ -1,8 +1,9 @@
 import { Text, View } from "react-native";
 import Colors from "../../constants/Colors";
 
-export default function HistoryAnswerCard({ marks }) {
+export default function HistoryAnswerCard({ marks, mode = "theory" }) {
   const marksValue = Number(marks);
+  const isImageMode = mode === "image";
 
   return (
     <View
@@ -14,8 +15,15 @@ export default function HistoryAnswerCard({ marks }) {
       }}
     >
       <Text style={{ color: Colors.accent }} className="font-bold mb-2">
-        Answer ({marks} Marks)
+        {isImageMode ? "Image-based answer" : "Theory-based answer"} ({marks} Marks)
       </Text>
+
+      {marksValue === 3 && (
+        <Text style={{ color: Colors.white }}>
+          Partition of 1947 caused migration and violence. Sources show people moved
+          toward Pakistan and faced loss of homes, safety, and basic resources.
+        </Text>
+      )}
 
       {marksValue === 4 && (
         <Text style={{ color: Colors.white }}>
@@ -26,9 +34,9 @@ export default function HistoryAnswerCard({ marks }) {
 
       {marksValue === 7 && (
         <Text style={{ color: Colors.white }}>
-          The partition led to mass migration, violence, and economic problems.
-          Millions migrated to Pakistan and faced refugee crises, loss of
-          property, and instability.
+          {isImageMode
+            ? "From the uploaded sources, the key impact points are mass migration, violence, and economic disruption. Millions moved to Pakistan and faced refugee crises, loss of property, and instability."
+            : "The partition led to mass migration, violence, and economic problems. Millions migrated to Pakistan and faced refugee crises, loss of property, and instability."}
         </Text>
       )}
 
@@ -38,8 +46,8 @@ export default function HistoryAnswerCard({ marks }) {
             Introduction
           </Text>
           <Text style={{ color: Colors.white }}>
-            The partition of 1947 resulted in the creation of Pakistan and
-            caused major social and economic changes.
+            The partition of 1947 resulted in the creation of Pakistan and caused
+            major social and economic changes.
           </Text>
 
           <Text style={{ color: Colors.accent }} className="font-bold mt-4">

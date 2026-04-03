@@ -3,8 +3,10 @@ import axios from "axios";
 import { Platform } from "react-native";
 
 const api = axios.create({
-  
-  baseURL: Platform.OS === "android" ? "http://192.168.1.5:4000/api" : "http://localhost:4000/api",
+  baseURL:
+    Platform.OS === "android"
+      ? "http://192.168.0.34:7000/api"
+      : "http://localhost:7000/api",
 });
 
 api.interceptors.request.use(async (config) => {
@@ -14,11 +16,11 @@ api.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (error) {
-     console.log("Interceptors: Storage not ready, sending request without token");
+    console.log(
+      "Interceptors: Storage not ready, sending request without token",
+    );
   }
   return config;
 });
 
 export default api;
-
-

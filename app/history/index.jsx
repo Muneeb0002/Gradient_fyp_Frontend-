@@ -1,312 +1,157 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-  StyleSheet,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppDecor from "../../components/shared/AppDecor";
-import PrimaryButton from "../../components/auth/PrimaryButton";
-import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
-import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 
-const MAX_IMAGES = 3;
-
-export default function HistoryScreen() {
+export default function HistoryModeScreen() {
   const router = useRouter();
-  const [marks, setMarks] = useState(4);
-  const [images, setImages] = useState([]);
-  const [question, setQuestion] = useState("");
-
-  const pickImage = async () => {
-    if (images.length >= MAX_IMAGES) {
-      Alert.alert("Limit reached", `You can add up to ${MAX_IMAGES} images.`);
-      return;
-    }
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      alert("Permission required!");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.9,
-    });
-    if (!result.canceled && result.assets[0]?.uri) {
-      setImages((prev) =>
-        [...prev, result.assets[0].uri].slice(0, MAX_IMAGES)
-      );
-    }
-  };
-
-  const removeAt = (idx) => {
-    setImages((prev) => prev.filter((_, i) => i !== idx));
-  };
 
   return (
     <LinearGradient
-      colors={[
-        Colors.backgroundStart,
-        Colors.backgroundMiddle,
-        Colors.backgroundEnd,
-      ]}
+      colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
       className="flex-1"
     >
       <AppDecor />
-      <SafeAreaView style={styles.safe}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.flex}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
         >
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator
-            nestedScrollEnabled
-          >
-            <ScreenHeader
-              onBack={() => router.back()}
-              title="History"
-              subtitle="Source-based answers sized to your mark scheme."
-              icon="book-open-page-variant"
-            />
+          <ScreenHeader
+            onBack={() => router.back()}
+            title="History"
+            subtitle="Choose Theory or Image mode"
+            icon="book-open-page-variant"
+          />
 
-            <View style={styles.card}>
-              <SectionCard label="Your question" icon="pencil-outline">
-                <QuestionInput
-                  hideLabel
-                  value={question}
-                  onChangeText={setQuestion}
-                />
-              </SectionCard>
+          <View style={styles.grid}>
+            <Pressable
+              onPress={() => router.push("/history/theory")}
+              style={({ pressed }) => [
+                styles.modeCard,
+                pressed && { opacity: 0.92 },
+              ]}
+            >
+              <LinearGradient
+                colors={["rgba(79,209,197,0.24)", "rgba(79,209,197,0.06)"]}
+                style={styles.modeCardInner}
+              >
+                <View style={styles.modeIconWrap}>
+                  <MaterialCommunityIcons name="book-open-variant" size={32} color={Colors.accent} />
+                </View>
+                <View style={styles.modeBadge}>
+                  <Text style={styles.modeBadgeText}>Recommended</Text>
+                </View>
+                <Text style={styles.modeTitle}>Theory</Text>
+                <Text style={styles.modeSubtitle}>Examiner-style structure</Text>
+                <Text style={styles.modeHint}>Best for text questions and long answers.</Text>
+              </LinearGradient>
+            </Pressable>
 
-              <Text style={styles.uploadLabel}>
-                Optional source images (max {MAX_IMAGES})
-              </Text>
-              <View style={styles.grid}>
-                {images.map((uri, idx) => (
-                  <View key={`${uri}-${idx}`} style={styles.thumbWrap}>
-                    <Image
-                      source={{ uri }}
-                      style={styles.thumb}
-                      resizeMode="cover"
-                    />
-                    <Pressable
-                      onPress={() => removeAt(idx)}
-                      style={styles.removeFab}
-                      hitSlop={8}
-                    >
-                      <MaterialCommunityIcons
-                        name="close-circle"
-                        size={22}
-                        color={Colors.white}
-                      />
-                    </Pressable>
-                  </View>
-                ))}
-                {images.length < MAX_IMAGES && (
-                  <Pressable
-                    onPress={pickImage}
-                    style={({ pressed }) => [
-                      styles.addTile,
-                      pressed && { opacity: 0.88 },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="image-plus"
-                      size={28}
-                      color={Colors.accent}
-                    />
-                    <Text style={styles.addTileText}>
-                      Add ({images.length}/{MAX_IMAGES})
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-              <Text style={styles.uploadHint}>
-                Add photos of sources, cartoons, or diagrams — one tap per
-                image.
-              </Text>
-
-              <Text style={styles.marksLabel}>Marks (answer length)</Text>
-              <View style={styles.marksRow}>
-                {[4, 7, 14].map((m, i) => (
-                  <Pressable
-                    key={m}
-                    onPress={() => setMarks(m)}
-                    style={[
-                      styles.markChip,
-                      i === 0 && { marginLeft: 0 },
-                      i === 2 && { marginRight: 0 },
-                      marks === m && styles.markChipActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.markChipText,
-                        marks === m && styles.markChipTextActive,
-                      ]}
-                    >
-                      {m} marks
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <PrimaryButton
-                title="Generate answer"
-                handlePress={() =>
-                  router.push({
-                    pathname: "/history/solution",
-                    params: {
-                      marks: String(marks),
-                      imageCount: String(images.length),
-                    },
-                  })
-                }
-              />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            <Pressable
+              onPress={() => router.push("/history/image")}
+              style={({ pressed }) => [
+                styles.modeCard,
+                pressed && { opacity: 0.92 },
+              ]}
+            >
+              <LinearGradient
+                colors={["rgba(63,183,168,0.24)", "rgba(63,183,168,0.06)"]}
+                style={styles.modeCardInner}
+              >
+                <View style={styles.modeIconWrap}>
+                  <MaterialCommunityIcons name="image-search-outline" size={32} color={Colors.accent} />
+                </View>
+                <View style={styles.modeBadge}>
+                  <Text style={styles.modeBadgeText}>Source-based</Text>
+                </View>
+                <Text style={styles.modeTitle}>Image</Text>
+                <Text style={styles.modeSubtitle}>Upload sources for visual analysis</Text>
+                <Text style={styles.modeHint}>Use this when paper has maps, cartoons, or photos.</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
   scrollContent: {
     paddingHorizontal: 22,
     paddingBottom: 48,
     paddingTop: 8,
-    flexGrow: 1,
-  },
-  card: {
-    marginTop: 8,
-    borderRadius: 24,
-    padding: 18,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.22,
-        shadowRadius: 14,
-      },
-      android: { elevation: 8 },
-    }),
-  },
-  uploadLabel: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 6,
-    marginBottom: 10,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: -4,
+    gap: 14,
+    marginTop: 10,
   },
-  thumbWrap: {
-    width: "31%",
-    marginHorizontal: "1%",
-    marginBottom: 8,
-    aspectRatio: 1,
-    borderRadius: 14,
-    overflow: "hidden",
+  modeCard: {
+    flex: 1,
+    minWidth: "42%",
+    borderRadius: 22,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    overflow: "hidden",
   },
-  thumb: {
-    width: "100%",
-    height: "100%",
+  modeCardInner: {
+    padding: 18,
+    height: 230,
+    justifyContent: "space-between",
   },
-  removeFab: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    borderRadius: 12,
-  },
-  addTile: {
-    width: "31%",
-    marginHorizontal: "1%",
-    marginBottom: 8,
-    aspectRatio: 1,
+  modeIconWrap: {
+    width: 54,
+    height: 54,
     borderRadius: 14,
-    borderWidth: 2,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
     borderColor: Colors.cardBorder,
-    borderStyle: "dashed",
-    backgroundColor: Colors.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
-    padding: 6,
+    marginBottom: 10,
   },
-  addTileText: {
-    color: Colors.textMuted,
-    fontSize: 11,
-    fontWeight: "700",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  uploadHint: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
+  modeBadge: {
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(79, 209, 197, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(79, 209, 197, 0.35)",
     marginBottom: 8,
   },
-  marksLabel: {
+  modeBadgeText: {
+    color: Colors.accent,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  modeTitle: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  modeSubtitle: {
+    marginTop: 6,
     color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: "700",
-    marginBottom: 10,
+    lineHeight: 18,
   },
-  marksRow: {
-    flexDirection: "row",
-    marginBottom: 8,
-  },
-  markChip: {
-    flex: 1,
-    marginHorizontal: 5,
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: "center",
-    backgroundColor: Colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  markChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primaryDark,
-  },
-  markChipText: {
-    color: Colors.textSecondary,
-    fontWeight: "800",
-    fontSize: 14,
-  },
-  markChipTextActive: {
-    color: Colors.white,
+  modeHint: {
+    marginTop: 8,
+    color: Colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "600",
+    minHeight: 36,
   },
 });
+

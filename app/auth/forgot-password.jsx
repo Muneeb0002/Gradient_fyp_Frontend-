@@ -1,23 +1,35 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react"; // 1. useState import karein
-import { Pressable, Text, View, ActivityIndicator, Alert } from "react-native";
+import { useState } from "react";
+import { Pressable, Text, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import InputField from "../../components/auth/InputField.jsx";
 import PrimaryButton from "../../components/auth/PrimaryButton";
+import AppDecor from "../../components/shared/AppDecor";
 import Colors from "../../constants/Colors";
 import { useForgotPassword } from "../../src/hooks/useForgotPassword.js";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState(""); 
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [serverError, setServerError] = useState("");
 
   const { mutate, isPending } = useForgotPassword();
 
   const handleSendOTP = () => {
+    setServerError("");
+    setEmailError("");
+
     if (!email) {
-      Alert.alert("Error", "Please enter your email address");
+      setEmailError("Please enter your email address.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError("Enter a valid email address.");
       return;
     }
 
@@ -25,11 +37,11 @@ export default function ForgotPasswordScreen() {
       onSuccess: () => {
         router.push({
           pathname: "auth/verify-otp",
-          params: { email: email } 
+          params: { email: email }
         });
       },
       onError: (err) => {
-        Alert.alert("Error", err.response?.data?.message || "Something went wrong");
+        setServerError(err.response?.data?.message || "Something went wrong");
       }
     });
   };
@@ -43,6 +55,7 @@ export default function ForgotPasswordScreen() {
       ]}
       className="flex-1"
     >
+      <AppDecor />
       <SafeAreaView className="flex-1 px-6 py-8">
         {/* Back Button */}
         <Pressable onPress={() => router.back()} className="mb-4">
@@ -70,15 +83,24 @@ export default function ForgotPasswordScreen() {
           label="Email Address"
           placeholder="e.g. your.mail@example.com"
           value={email}
-          onChangeText={(text) => setEmail(text)} 
+          onChangeText={(text) => {
+            setEmail(text);
+            setEmailError("");
+          }}
           keyboardType="email-address"
           autoCapitalize="none"
+          error={emailError}
         />
 
         {/* Send OTP Button */}
         <View className="mt-6">
+          {serverError ? (
+            <Text style={{ color: Colors.danger, fontWeight: "700", marginBottom: 12 }}>
+              {serverError}
+            </Text>
+          ) : null}
           <PrimaryButton
-            title={isPending ? "Sending..." : "Send OTP"} 
+            title={isPending ? "Sending..." : "Send OTP"}
             handlePress={handleSendOTP}
             disabled={isPending}
           />

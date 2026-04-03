@@ -7,6 +7,9 @@ const Colors = {
   accent: "#4FD1C5",
   primaryDark: "#2A8F83",
 
+  danger: "#FB7185",
+  dangerSoft: "rgba(251, 113, 133, 0.15)",
+
   textPrimary: "#FFFFFF",
   textSecondary: "#CBD5E1", // slate-300
   textMuted: "#94A3B8", // slate-400
