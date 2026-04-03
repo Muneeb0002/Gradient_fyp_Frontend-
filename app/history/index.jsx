@@ -88,14 +88,15 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: "column",
     gap: 14,
     marginTop: 10,
+    width: "100%",
+    alignSelf: "stretch",
   },
   modeCard: {
-    flex: 1,
-    minWidth: "42%",
+    width: "100%",
+    alignSelf: "stretch",
     borderRadius: 22,
     backgroundColor: Colors.surface,
     borderWidth: 1,
@@ -103,8 +104,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   modeCardInner: {
+    width: "100%",
     padding: 18,
-    height: 230,
+    height: 220,
     justifyContent: "space-between",
   },
   modeIconWrap: {
@@ -151,7 +153,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     fontWeight: "600",
-    minHeight: 36,
+    minHeight: 40,
   },
 });
 
