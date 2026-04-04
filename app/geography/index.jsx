@@ -11,33 +11,75 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 // Aapka Axios/Query hook import
+import { useEffect } from "react";
 import useMapQuery from "../../src/hooks/useMapQuery.js";
 
 export default function GeographyScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(""); // User ki current query
   const [showResult, setShowResult] = useState(false);
-
   // React Query Hook
   // enabled: !!searchQuery ka matlab hai query tabhi chalegi jab searchQuery empty na ho
   const { data: apiResponse, isLoading, isError, error } = useMapQuery(searchQuery);
+useEffect(() => {
+  if (apiResponse) {
+    console.log("POINTS:", JSON.stringify(apiResponse?.points));
+    console.log("PATHS:", JSON.stringify(apiResponse?.paths));
+    console.log("REGIONS:", JSON.stringify(apiResponse?.regions));
+  }
+}, [apiResponse]);
 
-  const handleSubmit = (input) => {
-    if (input?.text) {
-      setSearchQuery(input.text);
-      setShowResult(true);
-    }
-  };
 
-  // Backend data transformation ([lat, lng] to {latitude, longitude})
-  const formattedRivers = apiResponse?.paths?.map((path) => ({
+
+  // Allowed queries ki list
+const VALID_QUERIES = [
+  "Province", "Crops", "Livestock", "Fruits", "Forests", "Energy",
+  "Mineral", "Rivers", "Barrages", "Ports", "Infrastructure", "Landforms",
+  "Rain systems", "Airports", "Dryports", "Sea ports", "Dams",
+  "Major Industries", "Energy pipelines", "Population", "Mountain ranges",
+  "Deserts", "Plateaus", "Mountain passes", "Glaciers", "Canals",
+  "Fish farms", "Drought areas", "Industrial zones"
+];
+
+const normalizeQuery = (input) => {
+  const cleaned = input.trim().toLowerCase();
+  const match = VALID_QUERIES.find(
+    (q) => q.toLowerCase() === cleaned
+  );
+  return match || input.trim(); // Match mila to exact backend wala bhejo, warna as-is
+};
+
+const handleSubmit = (input) => {
+  if (input?.text) {
+    const normalized = normalizeQuery(input.text);
+    setSearchQuery(normalized);
+    setShowResult(true);
+  }
+};
+const formatCoord = (coord) => ({ latitude: coord[0], longitude: coord[1] });
+
+const formattedRivers = [
+  ...(apiResponse?.points?.map((point) => ({
+    label: point.label,
+    color: point.color || Colors.accent,
+    coords: point.data.map((p) => formatCoord(p.coordinates ?? p)),
+    renderType: "marker",
+  })) || []),
+
+  ...(apiResponse?.paths?.map((path) => ({
     label: path.label,
-    color: path.color,
-    coords: path.data.map((coord) => ({
-      latitude: coord[0],
-      longitude: coord[1],
-    })),
-  })) || [];
+    color: path.color || Colors.accent,
+    coords: path.data.map((coord) => formatCoord(coord)),
+    renderType: "polyline",
+  })) || []),
+
+  ...(apiResponse?.regions?.map((region) => ({
+    label: region.label,
+    color: region.color || Colors.accent,
+    coords: region.data.flatMap((r) => r.coordinates.map(formatCoord)),
+    renderType: "polygon",
+  })) || []),
+];
 
   const getQueryType = () => {
     // Check if input had images (from the 'input' object in handleSubmit)
@@ -163,3 +205,5 @@ const styles = StyleSheet.create({
     opacity: 0.8
   }
 });
+
+

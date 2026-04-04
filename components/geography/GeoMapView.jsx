@@ -1,5 +1,6 @@
+import React from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import MapView, { Marker, Polygon, Polyline } from "react-native-maps";
 
 export default function GeoMapView({ rivers }) {
   return (
@@ -12,81 +13,123 @@ export default function GeoMapView({ rivers }) {
         longitudeDelta: 10,
       }}
     >
-      {rivers.map((river, index) => (
-        <View key={`river-group-${index}`}>
-          {/* 1. Ye line draw karega */}
-          <Polyline
-            coordinates={river.coords}
-            strokeColor={river.color}
-            strokeWidth={3}
-          />
+      {rivers.map((item, index) => {
 
-          {/* 2. Ye river ka naam likhega (Start point par) */}
-          {river.coords.length > 0 && (
+        // ✅ POLYLINE + label marker at midpoint
+        if (item.renderType === "polyline") {
+          const mid = item.coords[Math.floor(item.coords.length / 2)];
+          return (
+            <React.Fragment key={`polyline-${index}`}>
+              <Polyline
+                coordinates={item.coords}
+                strokeColor={item.color}
+                strokeWidth={3}
+              />
+              {mid && (
+                <Marker coordinate={mid} tappable={false} anchor={{ x: 0.5, y: 0.5 }}>
+                  <View style={[styles.labelContainer, { borderColor: item.color }]}>
+                    <Text style={[styles.labelText, { color: item.color }]}>
+                      {item.label}
+                    </Text>
+                  </View>
+                </Marker>
+              )}
+            </React.Fragment>
+          );
+        }
+
+        // ✅ POLYGON + label marker at center
+        if (item.renderType === "polygon") {
+          const lats = item.coords.map((c) => c.latitude);
+          const lngs = item.coords.map((c) => c.longitude);
+          const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+          const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+
+          return (
+            <React.Fragment key={`polygon-${index}`}>
+              <Polygon
+                coordinates={item.coords}
+                strokeColor={item.color}
+                fillColor={item.color + "55"}
+                strokeWidth={2}
+              />
+              <Marker
+                coordinate={{ latitude: centerLat, longitude: centerLng }}
+                tappable={false}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <View style={[styles.labelContainer, { borderColor: item.color }]}>
+                  <Text style={[styles.labelText, { color: item.color }]}>
+                    {item.label}
+                  </Text>
+                </View>
+              </Marker>
+            </React.Fragment>
+          );
+        }
+
+        // ✅ MARKER (Airports, Ports, Dams)
+        if (item.renderType === "marker") {
+          return (
             <Marker
-              coordinate={river.coords[0]} // Pehle coordinate par label dikhayega
+              key={`marker-${index}`}
+              coordinate={item.coords[0]}
               tappable={false}
+              anchor={{ x: 0.5, y: 0.5 }}
             >
-              {/* Custom Label Styling */}
-              <View style={styles.labelContainer}>
-                <Text style={[styles.labelText, { color: river.color }]}>
-                  {river.label}
+              <View style={[styles.markerContainer, { borderColor: item.color }]}>
+                <View style={[styles.dot, { backgroundColor: item.color }]} />
+                <Text style={[styles.labelText, { color: item.color }]}>
+                  {item.label}
                 </Text>
               </View>
             </Marker>
-          )}
-        </View>
-      ))}
+          );
+        }
+
+        return null;
+      })}
     </MapView>
   );
 }
 
-// const styles = StyleSheet.create({
-//   labelContainer: {
-//     backgroundColor: "rgba(255, 255, 255, 0.8)",
-//     // paddingHorizontal: 0.3,
-//     paddingVertical: 3,
-//     borderRadius: 4,
-//     borderWidth: 1,
-//     borderColor: "#ccc",
-//   },
-//   labelText: {
-//     fontSize: 6,
-//     fontWeight: "bold",
-//   },
-// });
-
-
 const styles = StyleSheet.create({
   labelContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)", // Thora zyada solid taake map ke upar saaf dikhe
-    // paddingHorizontal: 6, // Text ke side par thori jagah
+    backgroundColor: "rgba(255,255,255,0.92)",
     paddingVertical: 3,
+    paddingHorizontal: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)", // Light border
-    
-    // Sabse important lines:
-    alignSelf: 'flex-start', // Ye container ko sirf text jitni width dega
-    minWidth: 60,           // Kam se kam itni width ho
-    alignItems: 'center',
-    justifyContent: 'center',
-    
-    // Shadow (Optional: Taake label utha hua dikhe)
+    alignItems: "center",
+    justifyContent: "center",
     ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-      },
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2 },
       android: { elevation: 3 },
     }),
   },
+  markerContainer: {
+    backgroundColor: "rgba(255,255,255,0.92)",
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2 },
+      android: { elevation: 3 },
+    }),
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   labelText: {
-    fontSize: 8,            // 6 bohot chota tha, 8 readable haii
-    fontWeight: "800",      // Extra bold for O Level GIS look
-    textAlign: 'center',
-    includeFontPadding: false, // Android par extra space khatam karne ke liye
+    fontSize: 9,
+    fontWeight: "800",
+    textAlign: "center",
   },
 });
+

@@ -1,16 +1,19 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, Text, View, Platform, StyleSheet } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AppDecor from "../../components/shared/AppDecor";
 import HistoryAnswerCard from "../../components/history/HistoryAnswerCard";
+import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 
 export default function HistorySolutionScreen() {
   const router = useRouter();
-  const { marks, imageCount, mode } = useLocalSearchParams();
+  
+  // ✅ answer aur question bhi lo
+  const { marks, imageCount, mode, answer, question } = useLocalSearchParams();
+  
   const modeValue = mode === "image" ? "image" : "theory";
   const modeLabel = modeValue === "image" ? "Image-based" : "Theory-based";
 
@@ -40,17 +43,18 @@ export default function HistorySolutionScreen() {
             icon="file-document-outline"
           />
 
+          {/* ✅ Dynamic question */}
           <SectionCard label="Question" icon="help-circle-outline">
             <Text style={styles.qText}>
-              Describe the effects of the partition of 1947 on the people of
-              Pakistan.
+              {question || "No question provided."}
             </Text>
           </SectionCard>
 
           <View style={{ height: 16 }} />
 
           <View style={styles.answerWrap}>
-            <HistoryAnswerCard marks={marks} mode={modeValue} />
+            {/* ✅ answer prop pass karo */}
+            <HistoryAnswerCard marks={marks} mode={modeValue} answer={answer} />
           </View>
         </ScrollView>
       </SafeAreaView>

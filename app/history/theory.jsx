@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -15,12 +16,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AppDecor from "../../components/shared/AppDecor";
 import PrimaryButton from "../../components/auth/PrimaryButton";
+import AppDecor from "../../components/shared/AppDecor";
 import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
+import { useAskAI } from "../../src/hooks/useAskAI.js";
 
 const MAX_IMAGES = 3;
 
@@ -29,6 +31,38 @@ export default function HistoryTheoryScreen() {
   const [marks, setMarks] = useState(3);
   const [images, setImages] = useState([]);
   const [question, setQuestion] = useState("");
+
+  // ✅ useMutation se sahi cheezein lo
+  const { mutateAsync, isPending } = useAskAI();
+
+  const handleGenerate = async () => {
+    if (!question.trim()) {
+      Alert.alert("Error", "Please enter a question first.");
+      return;
+    }
+
+    try {
+      const prompt = `Question: ${question}\n\nProvide an answer suitable for ${marks} marks.`;
+      
+      // ✅ mutateAsync call karo
+      const result = await mutateAsync({ query: prompt, marks: marks });
+
+      // ✅ Answer ke sath solution page pe jao
+      router.push({
+        pathname: "/history/solution",
+        params: {
+          question: question,
+          marks: String(marks),
+          mode: "theory",
+          answer: result?.answer || result?.response || JSON.stringify(result),
+        },
+      });
+
+    } catch (error) {
+      Alert.alert("Error", "Failed to generate answer. Please try again.");
+      console.error(error);
+    }
+  };
 
   const pickImage = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -84,6 +118,7 @@ export default function HistoryTheoryScreen() {
                   hideLabel
                   value={question}
                   onChangeText={setQuestion}
+                  placeholder="Ask anything about history..."
                 />
               </SectionCard>
 
@@ -136,7 +171,7 @@ export default function HistoryTheoryScreen() {
               <Text style={styles.marksLabel}>Marks (answer length)</Text>
 
               <View style={styles.marksRow}>
-                {[3, 7, 14].map((m) => (
+                {[4, 7, 14].map((m) => (
                   <Pressable
                     key={m}
                     onPress={() => setMarks(m)}
@@ -157,18 +192,18 @@ export default function HistoryTheoryScreen() {
                 ))}
               </View>
 
+              {/* ✅ Loading indicator */}
+              {isPending && (
+                <ActivityIndicator
+                  style={{ marginBottom: 10 }}
+                  color={Colors.accent}
+                />
+              )}
+
               <PrimaryButton
-                title="Generate answer"
-                handlePress={() =>
-                  router.push({
-                    pathname: "/history/solution",
-                    params: {
-                      marks: String(marks),
-                      imageCount: String(images.length),
-                      mode: "theory",
-                    },
-                  })
-                }
+                title={isPending ? "Generating..." : "Generate answer"}
+                handlePress={handleGenerate}
+                disabled={isPending}
               />
             </View>
           </ScrollView>
@@ -291,4 +326,3 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 });
-
