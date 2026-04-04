@@ -14,6 +14,7 @@ export default function GeoMapView({ rivers }) {
       }}
     >
       {rivers.map((item, index) => {
+<<<<<<< HEAD
 
         // ✅ POLYLINE + label marker at midpoint
         if (item.renderType === "polyline") {
@@ -38,6 +39,37 @@ export default function GeoMapView({ rivers }) {
           );
         }
 
+=======
+        // ✅ POLYLINE + label marker at midpoint
+        if (item.renderType === "polyline") {
+          const mid = item.coords[Math.floor(item.coords.length / 2)];
+          return (
+            <React.Fragment key={`polyline-${index}`}>
+              <Polyline
+                coordinates={item.coords}
+                strokeColor={item.color}
+                strokeWidth={3}
+              />
+              {mid && (
+                <Marker
+                  coordinate={mid}
+                  tappable={false}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                >
+                  <View
+                    style={[styles.labelContainer, { borderColor: item.color }]}
+                  >
+                    <Text style={[styles.labelText, { color: item.color }]}>
+                      {item.label}
+                    </Text>
+                  </View>
+                </Marker>
+              )}
+            </React.Fragment>
+          );
+        }
+
+>>>>>>> f105c7e61b4fb93346fb8a84b133e734f2be790e
         // ✅ POLYGON + label marker at center
         if (item.renderType === "polygon") {
           const lats = item.coords.map((c) => c.latitude);
@@ -58,7 +90,13 @@ export default function GeoMapView({ rivers }) {
                 tappable={false}
                 anchor={{ x: 0.5, y: 0.5 }}
               >
+<<<<<<< HEAD
                 <View style={[styles.labelContainer, { borderColor: item.color }]}>
+=======
+                <View
+                  style={[styles.labelContainer, { borderColor: item.color }]}
+                >
+>>>>>>> f105c7e61b4fb93346fb8a84b133e734f2be790e
                   <Text style={[styles.labelText, { color: item.color }]}>
                     {item.label}
                   </Text>
@@ -77,7 +115,13 @@ export default function GeoMapView({ rivers }) {
               tappable={false}
               anchor={{ x: 0.5, y: 0.5 }}
             >
+<<<<<<< HEAD
               <View style={[styles.markerContainer, { borderColor: item.color }]}>
+=======
+              <View
+                style={[styles.markerContainer, { borderColor: item.color }]}
+              >
+>>>>>>> f105c7e61b4fb93346fb8a84b133e734f2be790e
                 <View style={[styles.dot, { backgroundColor: item.color }]} />
                 <Text style={[styles.labelText, { color: item.color }]}>
                   {item.label}
@@ -117,7 +161,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     ...Platform.select({
+<<<<<<< HEAD
       ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2 },
+=======
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+      },
+>>>>>>> f105c7e61b4fb93346fb8a84b133e734f2be790e
       android: { elevation: 3 },
     }),
   },
@@ -132,4 +185,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+<<<<<<< HEAD
 
+=======
+>>>>>>> f105c7e61b4fb93346fb8a84b133e734f2be790e
