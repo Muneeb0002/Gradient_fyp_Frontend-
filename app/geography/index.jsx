@@ -1,250 +1,107 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import {
-  ActivityIndicator,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import GeoAnswerCard from "../../components/geography/GeoAnswerCard";
-import GeoInput from "../../components/geography/GeoInput";
-import GeoMapView from "../../components/geography/GeoMapView";
 import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
-import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
-// Aapka Axios/Query hook import
-import { useEffect } from "react";
-import useMapQuery from "../../src/hooks/useMapQuery.js";
 
-export default function GeographyScreen() {
+export default function GeographyModeScreen() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState(""); // User ki current query
-  const [showResult, setShowResult] = useState(false);
-  // React Query Hook
-  // enabled: !!searchQuery ka matlab hai query tabhi chalegi jab searchQuery empty na ho
-<<<<<<< HEAD
-  const { data: apiResponse, isLoading, isError, error } = useMapQuery(searchQuery);
-useEffect(() => {
-  if (apiResponse) {
-    console.log("POINTS:", JSON.stringify(apiResponse?.points));
-    console.log("PATHS:", JSON.stringify(apiResponse?.paths));
-    console.log("REGIONS:", JSON.stringify(apiResponse?.regions));
-  }
-}, [apiResponse]);
-
-
-
-  // Allowed queries ki list
-const VALID_QUERIES = [
-  "Province", "Crops", "Livestock", "Fruits", "Forests", "Energy",
-  "Mineral", "Rivers", "Barrages", "Ports", "Infrastructure", "Landforms",
-  "Rain systems", "Airports", "Dryports", "Sea ports", "Dams",
-  "Major Industries", "Energy pipelines", "Population", "Mountain ranges",
-  "Deserts", "Plateaus", "Mountain passes", "Glaciers", "Canals",
-  "Fish farms", "Drought areas", "Industrial zones"
-];
-
-const normalizeQuery = (input) => {
-  const cleaned = input.trim().toLowerCase();
-  const match = VALID_QUERIES.find(
-    (q) => q.toLowerCase() === cleaned
-  );
-  return match || input.trim(); // Match mila to exact backend wala bhejo, warna as-is
-};
-
-const handleSubmit = (input) => {
-  if (input?.text) {
-    const normalized = normalizeQuery(input.text);
-    setSearchQuery(normalized);
-    setShowResult(true);
-  }
-};
-const formatCoord = (coord) => ({ latitude: coord[0], longitude: coord[1] });
-
-const formattedRivers = [
-  ...(apiResponse?.points?.map((point) => ({
-    label: point.label,
-    color: point.color || Colors.accent,
-    coords: point.data.map((p) => formatCoord(p.coordinates ?? p)),
-    renderType: "marker",
-  })) || []),
-
-  ...(apiResponse?.paths?.map((path) => ({
-    label: path.label,
-    color: path.color || Colors.accent,
-    coords: path.data.map((coord) => formatCoord(coord)),
-    renderType: "polyline",
-  })) || []),
-
-  ...(apiResponse?.regions?.map((region) => ({
-    label: region.label,
-    color: region.color || Colors.accent,
-    coords: region.data.flatMap((r) => r.coordinates.map(formatCoord)),
-    renderType: "polygon",
-  })) || []),
-];
-=======
-  const {
-    data: apiResponse,
-    isLoading,
-    isError,
-    error,
-  } = useMapQuery(searchQuery);
-  useEffect(() => {
-    if (apiResponse) {
-      console.log("POINTS:", JSON.stringify(apiResponse?.points));
-      console.log("PATHS:", JSON.stringify(apiResponse?.paths));
-      console.log("REGIONS:", JSON.stringify(apiResponse?.regions));
-    }
-  }, [apiResponse]);
-
-  // Allowed queries ki list
-  const VALID_QUERIES = [
-    "Province",
-    "Crops",
-    "Livestock",
-    "Fruits",
-    "Forests",
-    "Energy",
-    "Mineral",
-    "Rivers",
-    "Barrages",
-    "Ports",
-    "Infrastructure",
-    "Landforms",
-    "Rain systems",
-    "Airports",
-    "Dryports",
-    "Sea ports",
-    "Dams",
-    "Major Industries",
-    "Energy pipelines",
-    "Population",
-    "Mountain ranges",
-    "Deserts",
-    "Plateaus",
-    "Mountain passes",
-    "Glaciers",
-    "Canals",
-    "Fish farms",
-    "Drought areas",
-    "Industrial zones",
-  ];
-
-  const normalizeQuery = (input) => {
-    const cleaned = input.trim().toLowerCase();
-    const match = VALID_QUERIES.find((q) => q.toLowerCase() === cleaned);
-    return match || input.trim(); // Match mila to exact backend wala bhejo, warna as-is
-  };
-
-  const handleSubmit = (input) => {
-    if (input?.text) {
-      const normalized = normalizeQuery(input.text);
-      setSearchQuery(normalized);
-      setShowResult(true);
-    }
-  };
-  const formatCoord = (coord) => ({ latitude: coord[0], longitude: coord[1] });
-
-  const formattedRivers = [
-    ...(apiResponse?.points?.map((point) => ({
-      label: point.label,
-      color: point.color || Colors.accent,
-      coords: point.data.map((p) => formatCoord(p.coordinates ?? p)),
-      renderType: "marker",
-    })) || []),
-
-    ...(apiResponse?.paths?.map((path) => ({
-      label: path.label,
-      color: path.color || Colors.accent,
-      coords: path.data.map((coord) => formatCoord(coord)),
-      renderType: "polyline",
-    })) || []),
-
-    ...(apiResponse?.regions?.map((region) => ({
-      label: region.label,
-      color: region.color || Colors.accent,
-      coords: region.data.flatMap((r) => r.coordinates.map(formatCoord)),
-      renderType: "polygon",
-    })) || []),
-  ];
->>>>>>> f105c7e61b4fb93346fb8a84b133e734f2be790e
-
-  const getQueryType = () => {
-    // Check if input had images (from the 'input' object in handleSubmit)
-    return "text"; // Defaulting to text based on your API response
-  };
 
   return (
     <LinearGradient
-      colors={[
-        Colors.backgroundStart,
-        Colors.backgroundMiddle,
-        Colors.backgroundEnd,
-      ]}
-      style={{ flex: 1 }}
+      colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
+      className="flex-1"
     >
       <AppDecor />
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
         >
           <ScreenHeader
             onBack={() => router.back()}
             title="Geography"
-            subtitle="GIS-style map + AI analysis for O Level."
+            subtitle="Choose Maps, Theory, or Image mode"
             icon="earth"
           />
 
-          <SectionCard
-            label="Ask or upload"
-            icon="map-search-outline"
-            style={styles.mainCard}
-          >
-            <GeoInput compact onSubmit={handleSubmit} />
-          </SectionCard>
+          <View style={styles.grid}>
+            <Pressable
+              onPress={() => router.push("/geography/maps")}
+              style={({ pressed }) => [
+                styles.modeCard,
+                pressed && { opacity: 0.92 },
+              ]}
+            >
+              <LinearGradient
+                colors={["rgba(79,209,197,0.24)", "rgba(79,209,197,0.06)"]}
+                style={styles.modeCardInner}
+              >
+                <View style={styles.modeIconWrap}>
+                  <MaterialCommunityIcons name="map-outline" size={32} color={Colors.accent} />
+                </View>
+                <View style={styles.modeBadge}>
+                  <Text style={styles.modeBadgeText}>Interactive</Text>
+                </View>
+                <Text style={styles.modeTitle}>Maps</Text>
+                <Text style={styles.modeSubtitle}>GIS map + layers for O Level</Text>
+                <Text style={styles.modeHint}>
+                  Search themes like rivers, crops, or infrastructure — same flow as before.
+                </Text>
+              </LinearGradient>
+            </Pressable>
 
-          {/* Loading State */}
-          {isLoading && (
-            <View style={styles.centerBox}>
-              <ActivityIndicator size="large" color={Colors.accent} />
-              <Text style={styles.loadingText}>
-                AI Engine analyzing rivers...
-              </Text>
-            </View>
-          )}
+            <Pressable
+              onPress={() => router.push("/geography/theory")}
+              style={({ pressed }) => [
+                styles.modeCard,
+                pressed && { opacity: 0.92 },
+              ]}
+            >
+              <LinearGradient
+                colors={["rgba(79,209,197,0.24)", "rgba(79,209,197,0.06)"]}
+                style={styles.modeCardInner}
+              >
+                <View style={styles.modeIconWrap}>
+                  <MaterialCommunityIcons name="book-open-variant" size={32} color={Colors.accent} />
+                </View>
+                <View style={styles.modeBadge}>
+                  <Text style={styles.modeBadgeText}>Recommended</Text>
+                </View>
+                <Text style={styles.modeTitle}>Theory</Text>
+                <Text style={styles.modeSubtitle}>Examiner-style structure</Text>
+                <Text style={styles.modeHint}>Best for text questions and long geography answers.</Text>
+              </LinearGradient>
+            </Pressable>
 
-          {/* Error State */}
-          {isError && (
-            <View style={styles.centerBox}>
-              <Text style={{ color: "red" }}>
-                Error: {error?.message || "Failed to fetch map"}
-              </Text>
-            </View>
-          )}
-
-          {/* Result Block */}
-          {showResult && !isLoading && apiResponse && (
-            <View style={styles.resultBlock}>
-              <Text style={styles.resultHeading}>GIS visualization</Text>
-
-              <View style={styles.mapShell}>
-                {/* Dynamic Data from API */}
-                <GeoMapView rivers={formattedRivers} />
-              </View>
-
-              <GeoAnswerCard
-                queryType={getQueryType()}
-                answer={apiResponse.explanation}
-              />
-            </View>
-          )}
+            <Pressable
+              onPress={() => router.push("/geography/image")}
+              style={({ pressed }) => [
+                styles.modeCard,
+                pressed && { opacity: 0.92 },
+              ]}
+            >
+              <LinearGradient
+                colors={["rgba(63,183,168,0.24)", "rgba(63,183,168,0.06)"]}
+                style={styles.modeCardInner}
+              >
+                <View style={styles.modeIconWrap}>
+                  <MaterialCommunityIcons name="image-search-outline" size={32} color={Colors.accent} />
+                </View>
+                <View style={styles.modeBadge}>
+                  <Text style={styles.modeBadgeText}>Source-based</Text>
+                </View>
+                <Text style={styles.modeTitle}>Image</Text>
+                <Text style={styles.modeSubtitle}>Upload sources for visual analysis</Text>
+                <Text style={styles.modeHint}>
+                  Use when the paper has maps, cartoons, diagrams, or photos.
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -252,62 +109,77 @@ const formattedRivers = [
 }
 
 const styles = StyleSheet.create({
-  scroll: {
+  scrollContent: {
     paddingHorizontal: 22,
-    paddingBottom: 36,
+    paddingBottom: 48,
     paddingTop: 8,
   },
-  mainCard: {
-    marginTop: 8,
-    borderRadius: 24,
-    padding: 18,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.22,
-        shadowRadius: 14,
-      },
-      android: { elevation: 8 },
-    }),
+  grid: {
+    flexDirection: "column",
+    gap: 14,
+    marginTop: 10,
+    width: "100%",
+    alignSelf: "stretch",
   },
-  resultBlock: {
-    marginTop: 20,
-  },
-  resultHeading: {
-    color: Colors.accent,
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    marginBottom: 10,
-  },
-  mapShell: {
-    height: 300, // Map ki height lazmi den
-    borderRadius: 16,
-    overflow: "hidden",
-    marginBottom: 12,
+  modeCard: {
+    width: "100%",
+    alignSelf: "stretch",
+    borderRadius: 22,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    overflow: "hidden",
   },
-  centerBox: {
-    marginTop: 40,
+  modeCardInner: {
+    width: "100%",
+    padding: 18,
+    height: 220,
+    justifyContent: "space-between",
+  },
+  modeIconWrap: {
+    width: 54,
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 10,
   },
-  loadingText: {
+  modeBadge: {
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(79, 209, 197, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(79, 209, 197, 0.35)",
+    marginBottom: 8,
+  },
+  modeBadgeText: {
+    color: Colors.accent,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  modeTitle: {
     color: Colors.white,
-    marginTop: 10,
-    fontSize: 14,
-<<<<<<< HEAD
-    opacity: 0.8
-  }
-});
-
-
-=======
-    opacity: 0.8,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  modeSubtitle: {
+    marginTop: 6,
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  modeHint: {
+    marginTop: 8,
+    color: Colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "600",
+    minHeight: 40,
   },
 });
->>>>>>> f105c7e61b4fb93346fb8a84b133e734f2be790e

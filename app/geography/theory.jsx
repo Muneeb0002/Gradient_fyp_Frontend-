@@ -21,13 +21,12 @@ import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 import { useAskAI } from "../../src/hooks/useAskAI.js";
 
-export default function HistoryTheoryScreen() {
+export default function GeographyTheoryScreen() {
   const router = useRouter();
   const [marks, setMarks] = useState(null);
   const [question, setQuestion] = useState("");
   const [dialog, setDialog] = useState(null);
 
-  // ✅ useMutation se sahi cheezein lo
   const { mutateAsync, isPending } = useAskAI();
 
   const handleGenerate = async () => {
@@ -48,14 +47,12 @@ export default function HistoryTheoryScreen() {
     }
 
     try {
-      const prompt = `Question: ${question}\n\nProvide an answer suitable for ${marks} marks.`;
+      const prompt = `Geography (O Level style).\n\nQuestion: ${question}\n\nProvide a clear geography answer suitable for ${marks} marks.`;
 
-      // ✅ mutateAsync call karo
       const result = await mutateAsync({ query: prompt, marks: marks });
 
-      // ✅ Answer ke sath solution page pe jao
       router.push({
-        pathname: "/history/solution",
+        pathname: "/geography/solution",
         params: {
           question: question,
           marks: String(marks),
@@ -98,7 +95,7 @@ export default function HistoryTheoryScreen() {
           >
             <ScreenHeader
               onBack={() => router.back()}
-              title="History - Theory"
+              title="Geography - Theory"
               subtitle="Text-based structure with marks: 4 / 7 / 14"
               icon="book-open-page-variant"
             />
@@ -109,7 +106,7 @@ export default function HistoryTheoryScreen() {
                   hideLabel
                   value={question}
                   onChangeText={setQuestion}
-                  placeholder="Ask anything about history..."
+                  placeholder="Ask anything about geography..."
                 />
               </SectionCard>
 
@@ -137,7 +134,6 @@ export default function HistoryTheoryScreen() {
                 ))}
               </View>
 
-              {/* ✅ Loading indicator */}
               {isPending && (
                 <ActivityIndicator
                   style={{ marginBottom: 10 }}

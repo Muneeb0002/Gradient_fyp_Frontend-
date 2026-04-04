@@ -1,10 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router"; // Params receive karne ke liye
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GeoAnswerCard from "../../components/geography/GeoAnswerCard";
 import GeoFeatures from "../../components/geography/GeoFeatures";
 import GeoMap from "../../components/geography/GeoMap";
+import HistoryAnswerCard from "../../components/history/HistoryAnswerCard";
 import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
@@ -12,13 +13,69 @@ import Colors from "../../constants/Colors";
 
 export default function GeographySolution() {
   const router = useRouter();
-  
-  // 1. Pichli screen (GeographyScreen) se data receive karna
   const params = useLocalSearchParams();
-  const { question, answer, paths, queryType } = params;
+  const { answer, marks, imageCount, mode, paths, queryType } = params;
+  const questionRaw = params.question;
+  const question =
+    typeof questionRaw === "string"
+      ? questionRaw
+      : Array.isArray(questionRaw)
+        ? questionRaw[0]
+        : undefined;
 
-  // JSON string ko wapas array mein convert karna (Map ke liye)
+  const modeValue = mode === "image" ? "image" : mode === "theory" ? "theory" : null;
+  const isExamMode = modeValue === "theory" || modeValue === "image";
+  const modeLabel = modeValue === "image" ? "Image-based" : "Theory-based";
+
   const parsedPaths = paths ? JSON.parse(paths) : null;
+
+  if (isExamMode) {
+    return (
+      <LinearGradient
+        colors={[
+          Colors.backgroundStart,
+          Colors.backgroundMiddle,
+          Colors.backgroundEnd,
+        ]}
+        className="flex-1"
+      >
+        <AppDecor />
+        <SafeAreaView className="flex-1">
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scroll}
+          >
+            <ScreenHeader
+              onBack={() => router.back()}
+              title="Geography — model answer"
+              subtitle={`${modeLabel} · Target: ${marks ?? "?"} marks${
+                imageCount && Number(imageCount) > 0
+                  ? ` · ${imageCount} source image${Number(imageCount) > 1 ? "s" : ""}`
+                  : ""
+              } — structure your paragraphs like this.`}
+              icon="file-document-outline"
+            />
+
+            <SectionCard label="Question" icon="help-circle-outline">
+              <Text style={styles.qText}>
+                {question?.trim()
+                  ? question
+                  : modeValue === "image"
+                    ? "(Optional — add context in Image mode if you like.)"
+                    : "No question provided."}
+              </Text>
+            </SectionCard>
+
+            <View style={{ height: 16 }} />
+
+            <View style={styles.answerWrap}>
+              <HistoryAnswerCard marks={marks} mode={modeValue} answer={answer} />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -42,7 +99,6 @@ export default function GeographySolution() {
             icon="map-marker-radius"
           />
 
-          {/* 2. Dynamic Question Section */}
           <SectionCard label="Question Analyzed" icon="help-circle-outline">
             <Text style={styles.qText}>
               {question || "Explain the formation of river deltas with reference to the Nile Delta."}
@@ -51,28 +107,19 @@ export default function GeographySolution() {
 
           <View style={{ height: 16 }} />
 
-          {/* 3. AI Features / Keywords Breakdown */}
           <View style={styles.block}>
             <GeoFeatures />
           </View>
 
           <View style={{ height: 12 }} />
 
-          {/* 4. Dynamic Map Section */}
           <View style={styles.block}>
-            {/* Agar paths maujood hain tu GeoMap ko pass karein, 
-               warna ye default (Nile Delta) dikhayega 
-            */}
             <GeoMap data={parsedPaths} />
           </View>
 
           <View style={{ height: 12 }} />
 
-          {/* 5. Dynamic Answer Card */}
-          <GeoAnswerCard 
-            queryType={queryType || "text"} 
-            answer={answer || "Generating detailed examiner-style breakdown..."} 
-          />
+          <GeoAnswerCard queryType={queryType || "text"} />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -89,12 +136,12 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     lineHeight: 26,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   block: {
     borderRadius: 20,
     overflow: "hidden",
-    backgroundColor: 'rgba(255, 255, 255, 0.03)', // Halki si transparency
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -103,6 +150,19 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
       },
       android: { elevation: 5 },
+    }),
+  },
+  answerWrap: {
+    borderRadius: 20,
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+      },
+      android: { elevation: 6 },
     }),
   },
 });
