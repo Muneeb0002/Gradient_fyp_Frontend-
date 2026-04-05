@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [displayName, setDisplayName] = useState("Abdullah Rana");
   const [photoUri, setPhotoUri] = useState("");
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showBanner, setShowBanner] = useState(Boolean(authMessage));
 
   useFocusEffect(
@@ -142,9 +143,7 @@ export default function Dashboard() {
 
             <View className="flex-row gap-2">
               <Pressable
-                onPress={() =>
-                  Alert.alert("Notifications", "No new notifications yet.")
-                }
+                onPress={() => setShowNotificationsModal(true)}
                 style={styles.iconBtn}
                 hitSlop={8}
               >
@@ -272,6 +271,32 @@ export default function Dashboard() {
             </View>
           </Pressable>
         </ScrollView>
+
+        <Modal
+          visible={showNotificationsModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowNotificationsModal(false)}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Notifications</Text>
+              <Text style={styles.modalText}>No new notifications yet.</Text>
+              <View style={[styles.modalActions, { marginTop: 18 }]}>
+                <Pressable
+                  onPress={() => setShowNotificationsModal(false)}
+                  style={({ pressed }) => [
+                    styles.modalBtn,
+                    styles.modalBtnOk,
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  <Text style={styles.modalBtnOkText}>OK</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         <Modal
           visible={showLogoutModal}
@@ -543,5 +568,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: "800",
     fontSize: 14,
+  },
+  modalBtnOk: {
+    borderColor: "transparent",
+    backgroundColor: "transparent",
+    paddingHorizontal: 8,
+  },
+  modalBtnOkText: {
+    color: Colors.accent,
+    fontWeight: "800",
+    fontSize: 15,
   },
 });

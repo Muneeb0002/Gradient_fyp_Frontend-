@@ -148,6 +148,7 @@ export default function LoginScreen() {
             label="Password"
             placeholder="Enter your password"
             secureTextEntry
+            passwordToggle
             value={formData.password}
             onChangeText={(text) => {
               setFormData({ ...formData, password: text });

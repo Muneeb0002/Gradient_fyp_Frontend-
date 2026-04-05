@@ -145,7 +145,9 @@ export default function GeographyMapsScreen() {
             <View style={styles.centerBox}>
               <ActivityIndicator size="large" color={Colors.accent} />
               <Text style={styles.loadingText}>
-                AI Engine analyzing rivers...
+                {searchQuery.trim()
+                  ? `AI Engine analyzing ${searchQuery.trim()}...`
+                  : "AI Engine analyzing..."}
               </Text>
             </View>
           )}

@@ -204,6 +204,7 @@ export default function SignUpScreen() {
                 label="Password"
                 placeholder="Create a strong password"
                 secureTextEntry
+                passwordToggle
                 value={formData.password}
                 onChangeText={(text) => {
                   setFormData({ ...formData, password: text });
