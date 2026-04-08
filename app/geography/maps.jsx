@@ -21,12 +21,15 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 import useMapQuery from "../../src/hooks/useMapQuery.js";
+import { askAIFunction } from "../../src/history.api.js/askAIFunction";
 
 export default function GeographyMapsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
+  const [featureDetails, setFeatureDetails] = useState(null);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   
   const {
     data: apiResponse,
@@ -120,8 +123,33 @@ export default function GeographyMapsScreen() {
 
   const getQueryType = () => "text";
 
-  const handleFeaturePress = (feature) => {
+  const handleFeaturePress = async (feature) => {
     setSelectedFeature(feature);
+    setFeatureDetails(null);
+    setIsFetchingDetails(true);
+
+    try {
+      // Create a specific prompt for the clicked feature
+      const prompt = `Provide a detailed O-Level Geography examiner-style breakdown (Syllabus 2217) for "${feature.label}" in Pakistan. 
+      Structure the response exactly as:
+      ### [1] Curriculum Context: 
+      [Detailed overview]
+      ### [2] Regional/Physical Analysis: 
+      [Distribution and physical factors]
+      ### [3] Significance: 
+      [Importance to Pakistan]
+      ### [4] Tutor Wisdom: 
+      [Exam tip]`;
+
+      const response = await askAIFunction({ query: prompt, marks: 4 });
+      if (response && response.answer) {
+        setFeatureDetails(response.answer);
+      }
+    } catch (error) {
+      console.error("Failed to fetch feature specific detail:", error);
+    } finally {
+      setIsFetchingDetails(false);
+    }
   };
 
   return (
@@ -174,26 +202,44 @@ export default function GeographyMapsScreen() {
           )}
 
           {showResult && !isLoading && apiResponse && (
-            <View style={styles.resultBlock}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <Text style={styles.resultHeading}>GIS visualization</Text>
-                {selectedFeature && (
-                  <Pressable onPress={() => setSelectedFeature(null)}>
-                    <Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '700' }}>Clear Selection</Text>
-                  </Pressable>
-                )}
-              </View>
+            formattedRivers.length > 0 ? (
+              <View style={styles.resultBlock}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={styles.resultHeading}>GIS visualization</Text>
+                  {selectedFeature && (
+                    <Pressable onPress={() => setSelectedFeature(null)}>
+                      <Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '700' }}>Clear Selection</Text>
+                    </Pressable>
+                  )}
+                </View>
 
-              <View style={styles.mapShell}>
-                <GeoMapView 
-                  rivers={formattedRivers} 
-                  onFeaturePress={handleFeaturePress}
-                  selectedFeatureId={selectedFeature?.label}
-                />
-              </View>
+                <View style={styles.mapShell}>
+                  <GeoMapView 
+                    rivers={formattedRivers} 
+                    onFeaturePress={handleFeaturePress}
+                    selectedFeatureId={selectedFeature?.label}
+                  />
+                </View>
 
-              <GeoAnswerCard queryType={getQueryType()} />
-            </View>
+                <GeoAnswerCard queryType={getQueryType()} />
+              </View>
+            ) : (
+              <View style={styles.noDataCard}>
+                <View style={styles.noDataIconBg}>
+                  <MaterialCommunityIcons name="map-marker-off" size={40} color={Colors.accent} />
+                </View>
+                <Text style={styles.noDataTitle}>Not in Syllabus</Text>
+                <Text style={styles.noDataText}>
+                  The query "{searchQuery}" is not recognized as a geographical feature in the O-Level syllabus. Please search for specific topics like Rivers, Dams, Crops, or Provinces.
+                </Text>
+                <Pressable 
+                  style={styles.retryBtn} 
+                  onPress={() => setShowResult(false)}
+                >
+                  <Text style={styles.retryBtnText}>Try Another Topic</Text>
+                </Pressable>
+              </View>
+            )
           )}
         </ScrollView>
       </SafeAreaView>
@@ -238,29 +284,36 @@ export default function GeographyMapsScreen() {
 
                 <Text style={styles.modalDescriptionTitle}>Syllabus Context (AI Generated):</Text>
                 
-                {apiResponse?.explanation ? apiResponse.explanation.split('###').map((part, index) => {
-                  if (!part.trim()) return null;
-                  
-                  // Agar part heading se start ho raha hai (e.g. [1] Title)
-                  const headingMatch = part.match(/^\s*(\[\d+\]\s+[^:\n]+)(?::|\n|$)/);
-                  if (headingMatch) {
-                    const heading = headingMatch[1];
-                    const content = part.replace(headingMatch[0], '').trim();
+                {isFetchingDetails ? (
+                  <View style={{ marginTop: 20, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color={Colors.accent} />
+                    <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 8 }}>AI analyzing {selectedFeature?.label} specifically...</Text>
+                  </View>
+                ) : (
+                  (featureDetails || apiResponse?.explanation) ? (featureDetails || apiResponse.explanation).split('###').map((part, index) => {
+                    if (!part.trim()) return null;
+                    
+                    // Agar part heading se start ho raha hai (e.g. [1] Title)
+                    const headingMatch = part.match(/^\s*(\[\d+\]\s+[^:\n]+)(?::|\n|$)/);
+                    if (headingMatch) {
+                      const heading = headingMatch[1];
+                      const content = part.replace(headingMatch[0], '').trim();
+                      return (
+                        <View key={`part-${index}`} style={{ marginTop: 12 }}>
+                          <Text style={styles.explanationHeading}>{heading}</Text>
+                          <Text style={styles.modalDescription}>{content}</Text>
+                        </View>
+                      );
+                    }
+                    
                     return (
-                      <View key={`part-${index}`} style={{ marginTop: 12 }}>
-                        <Text style={styles.explanationHeading}>{heading}</Text>
-                        <Text style={styles.modalDescription}>{content}</Text>
-                      </View>
+                      <Text key={`part-${index}`} style={styles.modalDescription}>
+                        {part.trim()}
+                      </Text>
                     );
-                  }
-                  
-                  return (
-                    <Text key={`part-${index}`} style={styles.modalDescription}>
-                      {part.trim()}
-                    </Text>
-                  );
-                }) : (
-                  <Text style={styles.modalDescription}>Analyzing geographical significance...</Text>
+                  }) : (
+                    <Text style={styles.modalDescription}>Analyzing geographical significance...</Text>
+                  )
                 )}
 
                 <View style={[styles.statusBadge, { backgroundColor: selectedFeature?.color + '22', borderColor: selectedFeature?.color }]}>
@@ -444,5 +497,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 1,
+  },
+  noDataCard: {
+    marginTop: 30,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 24,
+    padding: 30,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  noDataIconBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  noDataTitle: {
+    color: Colors.white,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  noDataText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 10,
+  },
+  retryBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.primaryDark,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  retryBtnText: {
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });
