@@ -1,9 +1,12 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,6 +26,8 @@ export default function GeographyMapsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [showResult, setShowResult] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState(null);
+  
   const {
     data: apiResponse,
     isLoading,
@@ -81,6 +86,7 @@ export default function GeographyMapsScreen() {
       const normalized = normalizeQuery(input.text);
       setSearchQuery(normalized);
       setShowResult(true);
+      setSelectedFeature(null);
     }
   };
 
@@ -92,6 +98,8 @@ export default function GeographyMapsScreen() {
       color: point.color || Colors.accent,
       coords: point.data.map((p) => formatCoord(p.coordinates ?? p)),
       renderType: "marker",
+      facts: point.facts,
+      icon: point.icon
     })) || []),
 
     ...(apiResponse?.paths?.map((path) => ({
@@ -106,10 +114,15 @@ export default function GeographyMapsScreen() {
       color: region.color || Colors.accent,
       coords: region.data.flatMap((r) => r.coordinates.map(formatCoord)),
       renderType: "polygon",
+      facts: region.data[0]?.description
     })) || []),
   ];
 
   const getQueryType = () => "text";
+
+  const handleFeaturePress = (feature) => {
+    setSelectedFeature(feature);
+  };
 
   return (
     <LinearGradient
@@ -162,10 +175,21 @@ export default function GeographyMapsScreen() {
 
           {showResult && !isLoading && apiResponse && (
             <View style={styles.resultBlock}>
-              <Text style={styles.resultHeading}>GIS visualization</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <Text style={styles.resultHeading}>GIS visualization</Text>
+                {selectedFeature && (
+                  <Pressable onPress={() => setSelectedFeature(null)}>
+                    <Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '700' }}>Clear Selection</Text>
+                  </Pressable>
+                )}
+              </View>
 
               <View style={styles.mapShell}>
-                <GeoMapView rivers={formattedRivers} />
+                <GeoMapView 
+                  rivers={formattedRivers} 
+                  onFeaturePress={handleFeaturePress}
+                  selectedFeatureId={selectedFeature?.label}
+                />
               </View>
 
               <GeoAnswerCard queryType={getQueryType()} />
@@ -173,6 +197,90 @@ export default function GeographyMapsScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* Feature Detail Popup */}
+      <Modal
+        visible={!!selectedFeature}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedFeature(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <LinearGradient
+              colors={[Colors.surface, Colors.surfaceAlt]}
+              style={styles.modalGradient}
+            >
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleRow}>
+                  <MaterialCommunityIcons 
+                    name={selectedFeature?.renderType === 'marker' ? 'map-marker' : 'map-marker-path'} 
+                    size={24} 
+                    color={Colors.accent} 
+                  />
+                  <Text style={styles.modalTitle}>{selectedFeature?.label}</Text>
+                </View>
+                <Pressable onPress={() => setSelectedFeature(null)} hitSlop={10}>
+                  <MaterialCommunityIcons name="close" size={24} color={Colors.textMuted} />
+                </Pressable>
+              </View>
+
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                <Text style={styles.modalSubHeading}>
+                  {selectedFeature?.renderType === 'polyline' ? 'River / Path Analysis' : 'Location Details'}
+                </Text>
+                
+                {selectedFeature?.facts ? (
+                   <View style={styles.factBox}>
+                     <Text style={styles.factText}>{selectedFeature.facts}</Text>
+                   </View>
+                ) : null}
+
+                <Text style={styles.modalDescriptionTitle}>Syllabus Context (AI Generated):</Text>
+                
+                {apiResponse?.explanation ? apiResponse.explanation.split('###').map((part, index) => {
+                  if (!part.trim()) return null;
+                  
+                  // Agar part heading se start ho raha hai (e.g. [1] Title)
+                  const headingMatch = part.match(/^\s*(\[\d+\]\s+[^:\n]+)(?::|\n|$)/);
+                  if (headingMatch) {
+                    const heading = headingMatch[1];
+                    const content = part.replace(headingMatch[0], '').trim();
+                    return (
+                      <View key={`part-${index}`} style={{ marginTop: 12 }}>
+                        <Text style={styles.explanationHeading}>{heading}</Text>
+                        <Text style={styles.modalDescription}>{content}</Text>
+                      </View>
+                    );
+                  }
+                  
+                  return (
+                    <Text key={`part-${index}`} style={styles.modalDescription}>
+                      {part.trim()}
+                    </Text>
+                  );
+                }) : (
+                  <Text style={styles.modalDescription}>Analyzing geographical significance...</Text>
+                )}
+
+                <View style={[styles.statusBadge, { backgroundColor: selectedFeature?.color + '22', borderColor: selectedFeature?.color }]}>
+                   <Text style={[styles.statusBadgeText, { color: selectedFeature?.color }]}>Verified GIS Data</Text>
+                </View>
+              </ScrollView>
+
+              <Pressable 
+                onPress={() => setSelectedFeature(null)}
+                style={({ pressed }) => [
+                  styles.modalCloseBtn,
+                  pressed && { opacity: 0.8 }
+                ]}
+              >
+                <Text style={styles.modalCloseBtnText}>GOT IT</Text>
+              </Pressable>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -207,7 +315,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    marginBottom: 10,
   },
   mapShell: {
     height: 300,
@@ -227,5 +334,115 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 14,
     opacity: 0.8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    maxHeight: '80%',
+    borderRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+  },
+  modalGradient: {
+    padding: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalTitle: {
+    color: Colors.white,
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  modalBody: {
+    marginBottom: 20,
+  },
+  modalSubHeading: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  factBox: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+  },
+  factText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  modalDescriptionTitle: {
+    color: Colors.accent,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+    opacity: 0.6,
+  },
+  explanationHeading: {
+    color: Colors.accent,
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  modalDescription: {
+    color: Colors.textSecondary,
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginTop: 20,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  modalCloseBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalCloseBtnText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
 });

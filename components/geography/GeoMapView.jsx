@@ -1,7 +1,8 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import Colors from "../../constants/Colors";
 
-export default function GeoMapView({ rivers }) {
+export default function GeoMapView({ rivers, onFeaturePress, selectedFeatureId }) {
   return (
     <MapView
       style={{ width: "100%", height: 250, borderRadius: 10 }}
@@ -12,31 +13,44 @@ export default function GeoMapView({ rivers }) {
         longitudeDelta: 10,
       }}
     >
-      {rivers.map((river, index) => (
-        <View key={`river-group-${index}`}>
-          {/* 1. Ye line draw karega */}
-          <Polyline
-            coordinates={river.coords}
-            strokeColor={river.color}
-            strokeWidth={3}
-          />
+      {rivers.map((river, index) => {
+        const isSelected = selectedFeatureId === river.label;
+        return (
+          <View key={`river-group-${index}`}>
+            {/* 1. Ye line draw karega */}
+            <Polyline
+              coordinates={river.coords}
+              strokeColor={isSelected ? Colors.accent : river.color}
+              strokeWidth={isSelected ? 6 : 3}
+              tappable={true}
+              onPress={() => onFeaturePress && onFeaturePress(river)}
+            />
 
-          {/* 2. Ye river ka naam likhega (Start point par) */}
-          {river.coords.length > 0 && (
-            <Marker
-              coordinate={river.coords[0]} // Pehle coordinate par label dikhayega
-              tappable={false}
-            >
-              {/* Custom Label Styling */}
-              <View style={styles.labelContainer}>
-                <Text style={[styles.labelText, { color: river.color }]}>
-                  {river.label}
-                </Text>
-              </View>
-            </Marker>
-          )}
-        </View>
-      ))}
+            {/* 2. Ye river ka naam likhega (Start point par) */}
+            {river.coords.length > 0 && (
+              <Marker
+                coordinate={river.coords[0]} // Pehle coordinate par label dikhayega
+                tappable={true}
+                onPress={() => onFeaturePress && onFeaturePress(river)}
+              >
+                {/* Custom Label Styling */}
+                <View style={[
+                  styles.labelContainer,
+                  isSelected && styles.selectedLabelContainer
+                ]}>
+                  <Text style={[
+                    styles.labelText, 
+                    { color: isSelected ? Colors.primary : river.color },
+                    isSelected && { fontSize: 10, fontWeight: "900" }
+                  ]}>
+                    {river.label}
+                  </Text>
+                </View>
+              </Marker>
+            )}
+          </View>
+        );
+      })}
     </MapView>
   );
 }
@@ -62,6 +76,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.9)", // Thora zyada solid taake map ke upar saaf dikhe
     // paddingHorizontal: 6, // Text ke side par thori jagah
     paddingVertical: 3,
+    paddingHorizontal: 8,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.1)", // Light border
@@ -82,6 +97,12 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 3 },
     }),
+  },
+  selectedLabelContainer: {
+    borderColor: Colors.accent,
+    borderWidth: 2,
+    backgroundColor: "#FFFFFF",
+    transform: [{ scale: 1.1 }],
   },
   labelText: {
     fontSize: 8,            // 6 bohot chota tha, 8 readable haii
