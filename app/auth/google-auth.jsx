@@ -120,7 +120,7 @@ export default function GoogleAuthScreen() {
 
           <View className="mb-3">
             <GoogleButton
-              handlePress={() => router.replace("/dashboard")}
+              handlePress={() => router.replace("/(tabs)")}
             />
           </View>
 

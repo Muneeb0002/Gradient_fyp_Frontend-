@@ -9,7 +9,7 @@ import InputField from "../../components/auth/InputField";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
 import Colors from "../../constants/Colors";
-import { getProfile } from "../../lib/storage";
+import { getProfile, saveProfile } from "../../lib/storage";
 import { useLogin } from "../../src/hooks/useLogin.js";
 
 export default function LoginScreen() {
@@ -56,11 +56,22 @@ export default function LoginScreen() {
           data?.firstName ||
           data?.user?.name?.split?.(" ")?.[0] ||
           "";
+        const apiEmail =
+          data?.user?.email ||
+          data?.email ||
+          formData.email ||
+          "";
         const profile = await getProfile();
         const fallbackFirstName = profile?.displayName?.split(" ")?.[0] || "User";
         const firstNameToShow = apiFirstName || fallbackFirstName;
+        // Save email + name to profile so Settings screen can display them
+        await saveProfile({
+          displayName: profile?.displayName || `${apiFirstName}`.trim() || "Student",
+          email: apiEmail || profile?.email || "",
+          photoUri: profile?.photoUri || "",
+        });
         router.replace({
-          pathname: "/dashboard",
+          pathname: "/(tabs)",
           params: { authMessage: `${firstNameToShow} login successful` },
         });
       },

@@ -46,7 +46,7 @@ export default function OnboardingCarousel() {
   const finish = useCallback(async () => {
     triggerLight();
     await setOnboardingComplete();
-    router.replace("/dashboard");
+    router.replace("/(tabs)");
   }, [router]);
 
   const goNext = useCallback(() => {

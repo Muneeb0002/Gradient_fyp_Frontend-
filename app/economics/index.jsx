@@ -64,7 +64,7 @@ export default function EconomicsScreen() {
 
         <PrimaryButton
           title="Back to dashboard"
-          handlePress={() => router.replace("/dashboard")}
+          handlePress={() => router.replace("/(tabs)")}
         />
       </SafeAreaView>
     </LinearGradient>
