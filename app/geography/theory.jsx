@@ -1,8 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -21,15 +25,50 @@ import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 import { useAskAI } from "../../src/hooks/useAskAI.js";
 
+const MAX_IMAGES = 1;
+
 export default function GeographyTheoryScreen() {
   const router = useRouter();
   const [marks, setMarks] = useState(null);
+  const [images, setImages] = useState([]);
   const [question, setQuestion] = useState("");
   const [dialog, setDialog] = useState(null);
 
   const { mutateAsync, isPending } = useAskAI();
 
+  const pickImage = async () => {
+    if (images.length >= MAX_IMAGES) {
+      Alert.alert("Limit reached", `You can add up to ${MAX_IMAGES} images.`);
+      return;
+    }
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required!", "Please allow media access to upload images.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.9,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setImages((prev) => [...prev, result.assets[0].uri].slice(0, MAX_IMAGES));
+    }
+  };
+
+  const removeAt = (idx) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handleGenerate = async () => {
+    if (images.length === 0) {
+      setDialog({
+        title: "Image required",
+        message: "Please upload an image to proceed.",
+      });
+      return;
+    }
+
+    /*
     if (!question.trim()) {
       setDialog({
         title: "Missing question",
@@ -45,19 +84,22 @@ export default function GeographyTheoryScreen() {
       });
       return;
     }
+    */
 
     try {
-      const prompt = `Geography (O Level style).\n\nQuestion: ${question}\n\nProvide a clear geography answer suitable for ${marks} marks.`;
+      // const prompt = `Geography (O Level style).\n\nQuestion: ${question}\n\nProvide a clear geography answer suitable for ${marks} marks.`;
+      // const result = await mutateAsync({ query: prompt, marks: marks });
 
-      const result = await mutateAsync({ query: prompt, marks: marks });
+      const hardcodedAnswer = "Here is the hardcoded theory explanation based on the uploaded image. Rivers like the Indus River are central to the geography of Pakistan, providing water for irrigation and sustaining agricultural activities.\n\nKey Points:\n1. The Indus River System consists of the main Indus River and its eastern tributaries.\n2. The system is crucial for agriculture through extensive canal networks.";
 
       router.push({
         pathname: "/geography/solution",
         params: {
-          question: question,
-          marks: String(marks),
+          question: question || "Image-based Question",
+          marks: marks ? String(marks) : "N/A",
+          imageCount: images.length > 0 ? String(images.length) : undefined,
           mode: "theory",
-          answer: result?.answer || result?.response || JSON.stringify(result),
+          answer: hardcodedAnswer,
         },
       });
     } catch (error) {
@@ -96,7 +138,7 @@ export default function GeographyTheoryScreen() {
             <ScreenHeader
               onBack={() => router.back()}
               title="Geography - Theory"
-              subtitle="Text-based structure with marks: 4 / 7 / 14"
+              subtitle="Text-based structure with marks: 1 to 6"
               icon="book-open-page-variant"
             />
 
@@ -110,10 +152,52 @@ export default function GeographyTheoryScreen() {
                 />
               </SectionCard>
 
+              <Text style={styles.uploadLabel}>
+                Upload Image (Required, max {MAX_IMAGES})
+              </Text>
+
+              <View style={styles.grid}>
+                {images.map((uri, idx) => (
+                  <View key={`${uri}-${idx}`} style={styles.thumbWrap}>
+                    <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
+                    <Pressable
+                      onPress={() => removeAt(idx)}
+                      style={styles.removeFab}
+                      hitSlop={8}
+                    >
+                      <MaterialCommunityIcons
+                        name="close-circle"
+                        size={22}
+                        color={Colors.white}
+                      />
+                    </Pressable>
+                  </View>
+                ))}
+
+                {images.length < MAX_IMAGES && (
+                  <Pressable
+                    onPress={pickImage}
+                    style={({ pressed }) => [
+                      styles.addTile,
+                      pressed && { opacity: 0.88 },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="image-plus"
+                      size={28}
+                      color={Colors.accent}
+                    />
+                    <Text style={styles.addTileText}>
+                      Add ({images.length}/{MAX_IMAGES})
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+
               <Text style={styles.marksLabel}>Marks (answer length)</Text>
 
               <View style={styles.marksRow}>
-                {[4, 7, 14].map((m) => (
+                {[1, 2, 3, 4, 5, 6].map((m) => (
                   <Pressable
                     key={m}
                     onPress={() => setMarks(m)}
@@ -187,10 +271,15 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 10,
   },
-  marksRow: { flexDirection: "row", marginBottom: 8 },
+  marksRow: { 
+    flexDirection: "row", 
+    flexWrap: "wrap", 
+    justifyContent: "space-between",
+    marginBottom: 8 
+  },
   markChip: {
-    flex: 1,
-    marginHorizontal: 5,
+    width: "30%",
+    marginBottom: 10,
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: "center",
@@ -209,5 +298,57 @@ const styles = StyleSheet.create({
   },
   markChipTextActive: {
     color: Colors.white,
+  },
+  uploadLabel: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -4,
+    marginBottom: 10,
+  },
+  thumbWrap: {
+    width: "31%",
+    marginHorizontal: "1%",
+    marginBottom: 8,
+    aspectRatio: 1,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  thumb: { width: "100%", height: "100%" },
+  removeFab: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 12,
+  },
+  addTile: {
+    width: "31%",
+    marginHorizontal: "1%",
+    marginBottom: 8,
+    aspectRatio: 1,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: Colors.cardBorder,
+    borderStyle: "dashed",
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 6,
+  },
+  addTileText: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 4,
+    textAlign: "center",
   },
 });
