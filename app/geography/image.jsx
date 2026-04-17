@@ -81,6 +81,29 @@ export default function GeographyImageScreen() {
       return;
     }
 
+    let mockPaths = undefined;
+    if (imageType === "map") {
+      const mockData = {
+        success: true,
+        message: "Analysis completed successfully",
+        data: {
+          features: [
+            {
+              type: "point",
+              label: "Pipri, Karachi",
+              data: [
+                [24.81, 67.35]
+              ],
+              color: "#f43f5e",
+              facts: "Largest industrial complex in Pakistan, built with assistance from USSR.",
+              icon: "map-pin"
+            }
+          ]
+        }
+      };
+      mockPaths = JSON.stringify(mockData);
+    }
+
     router.push({
       pathname: "/geography/solution",
       params: {
@@ -89,6 +112,7 @@ export default function GeographyImageScreen() {
         mode: "analysis",
         queryType: imageType,
         question: question.trim(),
+        ...(mockPaths && { paths: mockPaths }),
       },
     });
   };
