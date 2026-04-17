@@ -20,15 +20,18 @@ import AppDecor from "../../components/shared/AppDecor";
 import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
+import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
 
 const MAX_IMAGES = 3;
 
 export default function GeographyImageScreen() {
   const router = useRouter();
-  const [marks, setMarks] = useState(3);
+  const [marks, setMarks] = useState(null);
   const [images, setImages] = useState([]);
   const [question, setQuestion] = useState("");
+  const [imageType, setImageType] = useState("map");
+  const [dialog, setDialog] = useState(null);
 
   const pickImage = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -53,6 +56,43 @@ export default function GeographyImageScreen() {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const handleGenerate = () => {
+    if (images.length === 0) {
+      setDialog({
+        title: "Image required",
+        message: "Please upload at least one image to proceed.",
+      });
+      return;
+    }
+
+    if (!question.trim()) {
+      setDialog({
+        title: "Missing question",
+        message: "Please enter a question first.",
+      });
+      return;
+    }
+
+    if (marks == null) {
+      setDialog({
+        title: "Select marks",
+        message: "Please select marks.",
+      });
+      return;
+    }
+
+    router.push({
+      pathname: "/geography/solution",
+      params: {
+        marks: String(marks),
+        imageCount: String(images.length),
+        mode: "analysis",
+        queryType: imageType,
+        question: question.trim(),
+      },
+    });
+  };
+
   return (
     <LinearGradient
       colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
@@ -60,6 +100,12 @@ export default function GeographyImageScreen() {
     >
       <AppDecor />
       <SafeAreaView style={styles.safe}>
+        <ThemedMessageModal
+          visible={!!dialog}
+          title={dialog?.title}
+          message={dialog?.message ?? ""}
+          onClose={() => setDialog(null)}
+        />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.flex}
@@ -79,7 +125,7 @@ export default function GeographyImageScreen() {
             />
 
             <View style={styles.card}>
-              <SectionCard label="Question (optional)" icon="help-circle-outline">
+              <SectionCard label="Question" icon="help-circle-outline">
                 <QuestionInput
                   hideLabel
                   value={question}
@@ -134,7 +180,6 @@ export default function GeographyImageScreen() {
               </Text>
 
               <Text style={styles.marksLabel}>Marks (answer length)</Text>
-
               <View style={styles.marksRow}>
                 {[3, 7, 14].map((m) => (
                   <Pressable
@@ -157,19 +202,29 @@ export default function GeographyImageScreen() {
                 ))}
               </View>
 
+              <Text style={styles.marksLabel}>Image Type</Text>
+              <View style={styles.marksRow}>
+                <Pressable
+                  onPress={() => setImageType("map")}
+                  style={[styles.markChip, imageType === "map" && styles.markChipActive]}
+                >
+                  <Text style={[styles.markChipText, imageType === "map" && styles.markChipTextActive]}>
+                    Map
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setImageType("graph")}
+                  style={[styles.markChip, imageType === "graph" && styles.markChipActive]}
+                >
+                  <Text style={[styles.markChipText, imageType === "graph" && styles.markChipTextActive]}>
+                    Graph
+                  </Text>
+                </Pressable>
+              </View>
+
               <PrimaryButton
                 title="Generate image answer"
-                handlePress={() =>
-                  router.push({
-                    pathname: "/geography/solution",
-                    params: {
-                      marks: String(marks),
-                      imageCount: String(images.length),
-                      mode: "image",
-                      question: question.trim() || "",
-                    },
-                  })
-                }
+                handlePress={handleGenerate}
               />
             </View>
           </ScrollView>

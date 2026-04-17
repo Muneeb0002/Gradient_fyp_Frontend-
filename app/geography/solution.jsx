@@ -4,6 +4,7 @@ import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GeoAnswerCard from "../../components/geography/GeoAnswerCard";
 import GeoFeatures from "../../components/geography/GeoFeatures";
+import GeoGraph from "../../components/geography/GeoGraph";
 import GeoMap from "../../components/geography/GeoMap";
 import HistoryAnswerCard from "../../components/history/HistoryAnswerCard";
 import AppDecor from "../../components/shared/AppDecor";
@@ -114,7 +115,7 @@ export default function GeographySolution() {
           <View style={{ height: 12 }} />
 
           <View style={styles.block}>
-            <GeoMap data={parsedPaths} />
+            {queryType === "graph" ? <GeoGraph /> : <GeoMap data={parsedPaths} />}
           </View>
 
           <View style={{ height: 12 }} />
