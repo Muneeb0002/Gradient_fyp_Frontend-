@@ -22,6 +22,7 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
+import { useUploadGeography } from "../../src/hooks/useUploadGeography.js";
 
 const MAX_IMAGES = 3;
 
@@ -32,6 +33,9 @@ export default function GeographyImageScreen() {
   const [question, setQuestion] = useState("");
   const [imageType, setImageType] = useState("map");
   const [dialog, setDialog] = useState(null);
+
+
+
 
   const pickImage = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -56,63 +60,80 @@ export default function GeographyImageScreen() {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const { mutate, isPending } = useUploadGeography(); // ✅ add karo
+
   const handleGenerate = () => {
     if (images.length === 0) {
-      setDialog({
-        title: "Image required",
-        message: "Please upload at least one image to proceed.",
-      });
+      setDialog({ title: "Image required", message: "Please upload at least one image." });
       return;
     }
-
     if (!question.trim()) {
-      setDialog({
-        title: "Missing question",
-        message: "Please enter a question first.",
-      });
+      setDialog({ title: "Missing question", message: "Please enter a question first." });
       return;
     }
-
     if (marks == null) {
-      setDialog({
-        title: "Select marks",
-        message: "Please select marks.",
-      });
+      setDialog({ title: "Select marks", message: "Please select marks." });
       return;
     }
 
-    let mockPaths = undefined;
-    if (imageType === "map") {
-      const mockData = {
-        success: true,
-        message: "Analysis completed successfully",
-        data: {
-          features: [
-            {
-              type: "point",
-              label: "Pipri, Karachi",
-              data: [
-                [24.81, 67.35]
-              ],
-              color: "#f43f5e",
-              facts: "Largest industrial complex in Pakistan, built with assistance from USSR.",
-              icon: "map-pin"
-            }
-          ]
-        }
-      };
-      mockPaths = JSON.stringify(mockData);
-    }
+    // FormData banao
+    const formData = new FormData();
 
-    router.push({
-      pathname: "/geography/solution",
-      params: {
-        marks: String(marks),
-        imageCount: String(images.length),
-        mode: "analysis",
-        queryType: imageType,
-        question: question.trim(),
-        ...(mockPaths && { paths: mockPaths }),
+    // 1. Sirf pehli image bhejni hai (Postman ke mutabiq single file key 'image')
+    const uri = images[0];
+    const filename = uri.split("/").pop();
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : "image/jpeg";
+
+    formData.append("image", {
+      uri: Platform.OS === "android" ? uri : uri.replace("file://", ""),
+      name: filename || `upload_0.jpg`,
+      type,
+    });
+    formData.append("query", question.trim());
+    formData.append("marks", String(marks));
+
+    console.log("Sending Marks:", marks); // Dekhein marks null toh nahi
+    console.log("Sending Question:", question);
+
+    // ✅ Real API call
+    mutate(formData, {
+      // GeographyImageScreen.js ke onSuccess mein ye change karein:
+
+      onSuccess: (res) => {
+        console.log("BACKEND_RAW:", res.data);
+
+        const responseBody = res?.data;
+
+        // ❌ OLD CHECK HATAO
+        // if (responseBody && responseBody.success === true)
+
+        // ✅ NEW CHECK
+        if (responseBody && responseBody.explanation) {
+          console.log("SUCCESS HAI BHAII!");
+
+          router.push({
+            pathname: "/geography/solution",
+            params: {
+              marks: String(marks),
+              imageCount: String(images.length),
+              mode: "image",
+              queryType: imageType,
+              question: question.trim(),
+              answer: responseBody.explanation,
+              features: JSON.stringify(responseBody.features || []),
+
+            },
+          });
+        } else {
+          setDialog({
+            title: "Invalid Response",
+            message: "Backend response format incorrect"
+          });
+        }
+      },
+      onError: (err) => {
+        setDialog({ title: "Error", message: err.message || "Something went wrong" });
       },
     });
   };

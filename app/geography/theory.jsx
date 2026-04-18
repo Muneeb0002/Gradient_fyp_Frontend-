@@ -23,7 +23,10 @@ import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
-import { useAskAI } from "../../src/hooks/useAskAI.js";
+// import { useAskAI } from "../../src/hooks/useAskAI.js";
+
+import { useAnalyzeImage } from "../../src/hooks/useAnalyzeImage.js";
+
 
 const MAX_IMAGES = 1;
 
@@ -34,7 +37,9 @@ export default function GeographyTheoryScreen() {
   const [question, setQuestion] = useState("");
   const [dialog, setDialog] = useState(null);
 
-  const { mutateAsync, isPending } = useAskAI();
+  // const { mutateAsync, isPending } = useAskAI();
+
+  const { mutate, isPending, data, error } = useAnalyzeImage();
 
   const pickImage = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -60,143 +65,151 @@ export default function GeographyTheoryScreen() {
   };
 
   const handleGenerate = async () => {
+    // 1. Basic Validation
     if (images.length === 0) {
-      setDialog({
-        title: "Image required",
-        message: "Please upload an image to proceed.",
-      });
+      setDialog({ title: "Image required", message: "Please upload an image." });
       return;
     }
 
-    /*
-    if (!question.trim()) {
-      setDialog({
-        title: "Missing question",
-        message: "Please enter a question first.",
-      });
-      return;
-    }
+    // 2. FormData Prepare Karein
+    const formData = new FormData();
 
-    if (marks == null) {
-      setDialog({
-        title: "Select marks",
-        message: "Please select marks.",
-      });
-      return;
-    }
-    */
+    // React Native mein image file object aise banta hai:
+    const imageUri = images[0];
+    const filename = imageUri.split('/').pop();
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : `image`;
 
-    try {
-      // const prompt = `Geography (O Level style).\n\nQuestion: ${question}\n\nProvide a clear geography answer suitable for ${marks} marks.`;
-      // const result = await mutateAsync({ query: prompt, marks: marks });
+    formData.append("image", {
+      uri: Platform.OS === "android" ? imageUri : imageUri.replace("file://", ""),
+      name: filename || "upload.jpg",
+      type,
+    });
 
-      const hardcodedAnswer = "Here is the hardcoded theory explanation based on the uploaded image. Rivers like the Indus River are central to the geography of Pakistan, providing water for irrigation and sustaining agricultural activities.\n\nKey Points:\n1. The Indus River System consists of the main Indus River and its eastern tributaries.\n2. The system is crucial for agriculture through extensive canal networks.";
+    // Agar question aur marks bhi bhejne hain backend ko:
+    formData.append("question", question || "Image-based Question");
+    if (marks) formData.append("marks", String(marks));
 
+    // 3. API Call trigger karein
+    mutate(formData, {
+  onSuccess: (res) => {
+    console.log("Full Response:", res);
+
+  const finalAnswer = res.data?.answer; // ✅ correct
+  const finalMarks = res.data?.marks;   // ✅ correct
+
+    if (finalAnswer) {
       router.push({
         pathname: "/geography/solution",
         params: {
-          question: question || "Image-based Question",
-          marks: marks ? String(marks) : "N/A",
-          imageCount: images.length > 0 ? String(images.length) : undefined,
+          answer: finalAnswer,
+          marks: String(finalMarks || marks),
+          imageCount: String(images.length),
           mode: "theory",
-          answer: hardcodedAnswer,
+          question: question || "Geography Analysis",
         },
       });
-    } catch (error) {
-      setDialog({
-        title: "Something went wrong",
-        message: "Failed to generate answer. Please try again.",
-      });
-      console.error(error);
+    } else {
+      Alert.alert("Error", "No answer received from backend.");
     }
-  };
+  },
+  onError: (err) => {
+    console.error("Mutation Error:", err);
+    setDialog({
+      title: "Error",
+      message: err.message || "Something went wrong",
+    });
+  },
+});
+};
 
-  return (
-    <LinearGradient
-      colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
-      className="flex-1"
-    >
-      <AppDecor />
-      <SafeAreaView style={styles.safe}>
-        <ThemedMessageModal
-          visible={!!dialog}
-          title={dialog?.title}
-          message={dialog?.message ?? ""}
-          onClose={() => setDialog(null)}
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+
+return (
+  <LinearGradient
+    colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
+    className="flex-1"
+  >
+    <AppDecor />
+    <SafeAreaView style={styles.safe}>
+      <ThemedMessageModal
+        visible={!!dialog}
+        title={dialog?.title}
+        message={dialog?.message ?? ""}
+        onClose={() => setDialog(null)}
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.flex}
+      >
+        <ScrollView
           style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
         >
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled
-          >
-            <ScreenHeader
-              onBack={() => router.back()}
-              title="Geography - Theory"
-              subtitle="Text-based structure with marks: 1 to 6"
-              icon="book-open-page-variant"
-            />
+          <ScreenHeader
+            onBack={() => router.back()}
+            title="Geography - Theory"
+            subtitle="Text-based structure with marks: 1 to 6"
+            icon="book-open-page-variant"
+          />
 
-            <View style={styles.card}>
-              <SectionCard label="Your question" icon="pencil-outline">
-                <QuestionInput
-                  hideLabel
-                  value={question}
-                  onChangeText={setQuestion}
-                  placeholder="Ask anything about geography..."
-                />
-              </SectionCard>
+          <View style={styles.card}>
+            <SectionCard label="Your question" icon="pencil-outline">
+              <QuestionInput
+                hideLabel
+                value={question}
+                onChangeText={setQuestion}
+                placeholder="Ask anything about geography..."
+              />
+            </SectionCard>
 
-              <Text style={styles.uploadLabel}>
-                Upload Image (Required, max {MAX_IMAGES})
-              </Text>
+            <Text style={styles.uploadLabel}>
+              Upload Image (Required, max {MAX_IMAGES})
+            </Text>
 
-              <View style={styles.grid}>
-                {images.map((uri, idx) => (
-                  <View key={`${uri}-${idx}`} style={styles.thumbWrap}>
-                    <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
-                    <Pressable
-                      onPress={() => removeAt(idx)}
-                      style={styles.removeFab}
-                      hitSlop={8}
-                    >
-                      <MaterialCommunityIcons
-                        name="close-circle"
-                        size={22}
-                        color={Colors.white}
-                      />
-                    </Pressable>
-                  </View>
-                ))}
-
-                {images.length < MAX_IMAGES && (
+            <View style={styles.grid}>
+              {images.map((uri, idx) => (
+                <View key={`${uri}-${idx}`} style={styles.thumbWrap}>
+                  <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
                   <Pressable
-                    onPress={pickImage}
-                    style={({ pressed }) => [
-                      styles.addTile,
-                      pressed && { opacity: 0.88 },
-                    ]}
+                    onPress={() => removeAt(idx)}
+                    style={styles.removeFab}
+                    hitSlop={8}
                   >
                     <MaterialCommunityIcons
-                      name="image-plus"
-                      size={28}
-                      color={Colors.accent}
+                      name="close-circle"
+                      size={22}
+                      color={Colors.white}
                     />
-                    <Text style={styles.addTileText}>
-                      Add ({images.length}/{MAX_IMAGES})
-                    </Text>
                   </Pressable>
-                )}
-              </View>
+                </View>
+              ))}
 
-              <Text style={styles.marksLabel}>Marks (answer length)</Text>
+              {images.length < MAX_IMAGES && (
+                <Pressable
+                  onPress={pickImage}
+                  style={({ pressed }) => [
+                    styles.addTile,
+                    pressed && { opacity: 0.88 },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="image-plus"
+                    size={78}
+                    color={Colors.accent}
+                  />
+                  <Text style={styles.addTileText}>
+                    Add ({images.length}/{MAX_IMAGES})
+                  </Text>
+                </Pressable>
+              )}
+            </View>
 
-              <View style={styles.marksRow}>
+            {/* <Text style={styles.marksLabel}>Marks (answer length)</Text> */}
+
+            {/* <View style={styles.marksRow}>
                 {[1, 2, 3, 4, 5, 6].map((m) => (
                   <Pressable
                     key={m}
@@ -216,26 +229,26 @@ export default function GeographyTheoryScreen() {
                     </Text>
                   </Pressable>
                 ))}
-              </View>
+              </View> */}
 
-              {isPending && (
-                <ActivityIndicator
-                  style={{ marginBottom: 10 }}
-                  color={Colors.accent}
-                />
-              )}
-
-              <PrimaryButton
-                title={isPending ? "Generating..." : "Generate answer"}
-                handlePress={handleGenerate}
-                disabled={isPending}
+            {isPending && (
+              <ActivityIndicator
+                style={{ marginBottom: 10 }}
+                color={Colors.accent}
               />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </LinearGradient>
-  );
+            )}
+
+            <PrimaryButton
+              title={isPending ? "Generating..." : "Generate answer"}
+              handlePress={handleGenerate}
+              disabled={isPending}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  </LinearGradient>
+);
 }
 
 const styles = StyleSheet.create({
@@ -271,11 +284,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 10,
   },
-  marksRow: { 
-    flexDirection: "row", 
-    flexWrap: "wrap", 
+  marksRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 8 
+    marginBottom: 8
   },
   markChip: {
     width: "30%",
@@ -301,8 +314,8 @@ const styles = StyleSheet.create({
   },
   uploadLabel: {
     color: Colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "500",
     marginTop: 16,
     marginBottom: 10,
   },

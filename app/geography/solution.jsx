@@ -25,10 +25,19 @@ export default function GeographySolution() {
         : undefined;
 
   const modeValue = mode === "image" ? "image" : mode === "theory" ? "theory" : null;
-  const isExamMode = modeValue === "theory" || modeValue === "image";
+  const isExamMode = modeValue === "theory"; // "image" hata diya
   const modeLabel = modeValue === "image" ? "Image-based" : "Theory-based";
 
-  const parsedPaths = paths ? JSON.parse(paths) : null;
+  // const parsedPaths = paths ? JSON.parse(paths) : null;
+   const  parsedFeatures = params.features ? JSON.parse(params.features) : [];
+
+  console.log("FEATURES FINAL:", parsedFeatures);
+
+  console.log("GEOFEATURES PROP CHECK:", parsedFeatures.length);
+
+  console.log("Current Mode:", modeValue);
+  console.log("Received Answer:", answer);
+  const displayAnswer = typeof answer === 'string' ? answer : JSON.stringify(answer);
 
   if (isExamMode) {
     return (
@@ -49,11 +58,10 @@ export default function GeographySolution() {
             <ScreenHeader
               onBack={() => router.back()}
               title="Geography — model answer"
-              subtitle={`${modeLabel} · Target: ${marks ?? "?"} marks${
-                imageCount && Number(imageCount) > 0
-                  ? ` · ${imageCount} source image${Number(imageCount) > 1 ? "s" : ""}`
-                  : ""
-              } — structure your paragraphs like this.`}
+              subtitle={`${modeLabel} · Target: ${marks ?? "?"} marks${imageCount && Number(imageCount) > 0
+                ? ` · ${imageCount} source image${Number(imageCount) > 1 ? "s" : ""}`
+                : ""
+                } — structure your paragraphs like this.`}
               icon="file-document-outline"
             />
 
@@ -70,7 +78,11 @@ export default function GeographySolution() {
             <View style={{ height: 16 }} />
 
             <View style={styles.answerWrap}>
-              <HistoryAnswerCard marks={marks} mode={modeValue} answer={answer} />
+              {answer ? (
+                <HistoryAnswerCard marks={marks} mode={modeValue} answer={answer} />
+              ) : (
+                <Text style={{ color: 'white' }}>No answer found in params</Text>
+              )}
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -109,18 +121,24 @@ export default function GeographySolution() {
           <View style={{ height: 16 }} />
 
           <View style={styles.block}>
-            <GeoFeatures />
+            <GeoFeatures data={parsedFeatures} />
           </View>
 
           <View style={{ height: 12 }} />
 
           <View style={styles.block}>
-            {queryType === "graph" ? <GeoGraph /> : <GeoMap data={parsedPaths} />}
+            {/* Yahan features ko pass karein taaki map par points dikhen */}
+            {queryType === "graph"
+              ? <GeoGraph data={parsedFeatures} />
+              : <GeoMap data={parsedFeatures} />
+            }
           </View>
-
           <View style={{ height: 12 }} />
 
-          <GeoAnswerCard queryType={queryType || "text"} />
+          <GeoAnswerCard
+            queryType={queryType || "text"}
+            answer={answer} // Explanation yahan pass karein
+          />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

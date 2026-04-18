@@ -3,27 +3,18 @@ import Colors from "../../constants/Colors";
 import GeoMapView from "./GeoMapView";
 
 export default function GeoMap({ data }) {
-  // Parse features
-  let features = [];
-  try {
-    if (data?.data?.features) {
-       features = data.data.features;
-    }
-  } catch (e) {
-  }
+  // ✅ data directly array hai
+  const features = Array.isArray(data) ? data : [];
 
-  // Format into what GeoMapView expects (rivers)
   const mapObjects = features.map(feat => {
-    // feat.data is like [[24.81, 67.35], ...]
     const coords = (feat.data || []).map(pt => ({
-      latitude: pt[0],
-      longitude: pt[1],
+      latitude: Array.isArray(pt) ? pt[0] : pt.latitude,
+      longitude: Array.isArray(pt) ? pt[1] : pt.longitude,
     }));
-
     return {
       label: feat.label || "Unknown",
       color: feat.color || Colors.accent,
-      coords: coords,
+      coords,
       facts: feat.facts || "",
       icon: feat.icon || "map-pin",
     };

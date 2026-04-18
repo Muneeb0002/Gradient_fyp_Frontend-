@@ -5,8 +5,8 @@ import { Platform } from "react-native";
 const api = axios.create({
   baseURL:
     Platform.OS === "android"
-      ? "http://192.168.0.33:7000/api"
-      : "http://localhost:7000/api",
+      ? "http://192.168.137.1:4000/api"
+      : "http://localhost:4000/api",
 });
 
 api.interceptors.request.use(async (config) => {

@@ -1,44 +1,53 @@
-import { Text, View } from "react-native";
+
+import { ScrollView, Text, View, StyleSheet } from "react-native";
 import Colors from "../../constants/Colors";
 
-export default function GeoAnswerCard({ queryType }) {
+export default function GeoAnswerCard({ queryType, answer }) {
   return (
-    <View
-      className="p-4 rounded-2xl"
-      style={{
-        backgroundColor: Colors.surface,
-        borderWidth: 1,
-        borderColor: Colors.cardBorder,
-      }}
-    >
-      <Text className="font-bold mb-2" style={{ color: Colors.accent }}>
-        Examiner Style Answer
-      </Text>
+    <View style={styles.container}>
+      <Text style={styles.heading}>📝 Examiner Style Answer</Text>
 
-      {queryType === "image" && (
-        <Text style={{ color: Colors.white }}>
-          • Map shows Indus River system{"\n"}• Major tributaries identified
-          {"\n"}• Flow direction north to south{"\n"}• Important for irrigation
-        </Text>
+      {answer ? (
+        <Text style={styles.answerText}>{answer}</Text>
+      ) : (
+        <Text style={styles.empty}>No answer available.</Text>
       )}
 
-      {queryType === "text" && (
-        <Text style={{ color: Colors.white }}>
-          • Indus River is longest river of Pakistan{"\n"}• Supports agriculture
-          {"\n"}• Key for economy{"\n"}• Forms delta near Arabian Sea
-        </Text>
-      )}
-
-      {queryType === "both" && (
-        <Text style={{ color: Colors.white }}>
-          • Image + text both analyzed{"\n"}• Rivers identified visually{"\n"}•
-          Explanation based on question{"\n"}• Combined interpretation generated
-        </Text>
-      )}
-
-      <Text className="mt-3" style={{ color: Colors.textSecondary }}>
-        Answer generated using GIS + keyword analysis approach.
+      <Text style={styles.footer}>
+        Answer generated using AI analysis approach.
       </Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    marginBottom: 8,
+  },
+  heading: {
+    color: Colors.accent,
+    fontWeight: "700",
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  answerText: {
+    color: Colors.white,
+    fontSize: 14,
+    lineHeight: 24,
+  },
+  empty: {
+    color: Colors.textMuted,
+    fontSize: 13,
+  },
+  footer: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    marginTop: 14,
+    fontStyle: "italic",
+  },
+});

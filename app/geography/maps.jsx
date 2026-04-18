@@ -38,6 +38,8 @@ export default function GeographyMapsScreen() {
     error,
   } = useMapQuery(searchQuery);
 
+  console.log("SEARCH QUERY:", searchQuery);
+
   useEffect(() => {
     if (apiResponse) {
       console.log("POINTS:", JSON.stringify(apiResponse?.points));
