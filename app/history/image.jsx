@@ -15,14 +15,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AppDecor from "../../components/shared/AppDecor";
 import PrimaryButton from "../../components/auth/PrimaryButton";
+import AppDecor from "../../components/shared/AppDecor";
 import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 
-const MAX_IMAGES = 3;
+const MAX_IMAGES = 1;
 
 export default function HistoryImageScreen() {
   const router = useRouter();
@@ -37,7 +37,10 @@ export default function HistoryImageScreen() {
     }
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission required!", "Please allow media access to upload images.");
+      Alert.alert(
+        "Permission required!",
+        "Please allow media access to upload images.",
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -55,7 +58,11 @@ export default function HistoryImageScreen() {
 
   return (
     <LinearGradient
-      colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
+      colors={[
+        Colors.backgroundStart,
+        Colors.backgroundMiddle,
+        Colors.backgroundEnd,
+      ]}
       className="flex-1"
     >
       <AppDecor />
@@ -79,7 +86,10 @@ export default function HistoryImageScreen() {
             />
 
             <View style={styles.card}>
-              <SectionCard label="Question (optional)" icon="help-circle-outline">
+              <SectionCard
+                label="Question (optional)"
+                icon="help-circle-outline"
+              >
                 <QuestionInput
                   hideLabel
                   value={question}
@@ -87,14 +97,16 @@ export default function HistoryImageScreen() {
                 />
               </SectionCard>
 
-              <Text style={styles.uploadLabel}>
-                Source images (max {MAX_IMAGES})
-              </Text>
+              <Text style={styles.uploadLabel}>Source image (max {MAX_IMAGES})</Text>
 
               <View style={styles.grid}>
                 {images.map((uri, idx) => (
                   <View key={`${uri}-${idx}`} style={styles.thumbWrap}>
-                    <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
+                    <Image
+                      source={{ uri }}
+                      style={styles.thumb}
+                      resizeMode="cover"
+                    />
                     <Pressable
                       onPress={() => removeAt(idx)}
                       style={styles.removeFab}
@@ -130,13 +142,14 @@ export default function HistoryImageScreen() {
               </View>
 
               <Text style={styles.uploadHint}>
-                Upload photos of notes/diagrams — then generate an image-based answer.
+                Upload photos of notes/diagrams — then generate an image-based
+                answer.
               </Text>
 
               <Text style={styles.marksLabel}>Marks (answer length)</Text>
 
               <View style={styles.marksRow}>
-                {[3, 7, 14].map((m) => (
+                {[3, 5].map((m) => (
                   <Pressable
                     key={m}
                     onPress={() => setMarks(m)}
@@ -291,4 +304,3 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 });
-
