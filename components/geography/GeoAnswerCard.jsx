@@ -7,8 +7,37 @@ export default function GeoAnswerCard({ queryType, answer }) {
     <View style={styles.container}>
       <Text style={styles.heading}>📝 Examiner Style Answer</Text>
 
+      <View style={{ height: 8 }} />
+
       {answer ? (
-        <Text style={styles.answerText}>{answer}</Text>
+        answer.split("\n").map((line, index) => {
+          // Detect headers starting with # (e.g., ## or ###)
+          const headingMatch = line.trim().match(/^(#+)\s*(.*)$/);
+          
+          if (headingMatch) {
+            // Clean the heading text by removing bold markers and trimming whitespace
+            const cleanHeading = headingMatch[2].replace(/\*\*/g, "").trim();
+            if (cleanHeading) {
+              return (
+                <Text key={index} style={styles.themedHeading}>
+                  {cleanHeading}
+                </Text>
+              );
+            }
+          }
+
+          if (line.trim() === "") return <View key={index} style={{ height: 8 }} />;
+          
+          // Render plain text while stripping bold markers (**) for a cleaner theme look
+          const cleanText = line.replace(/\*\*/g, "").trim();
+          if (!cleanText) return null;
+
+          return (
+            <Text key={index} style={styles.answerText}>
+              {cleanText}
+            </Text>
+          );
+        })
       ) : (
         <Text style={styles.empty}>No answer available.</Text>
       )}
@@ -39,6 +68,14 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     lineHeight: 24,
+    marginBottom: 6,
+  },
+  themedHeading: {
+    color: Colors.accent,
+    fontSize: 17,
+    fontWeight: "800",
+    marginTop: 12,
+    marginBottom: 8,
   },
   empty: {
     color: Colors.textMuted,

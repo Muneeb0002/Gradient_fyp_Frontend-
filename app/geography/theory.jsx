@@ -25,7 +25,7 @@ import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 // import { useAskAI } from "../../src/hooks/useAskAI.js";
 
-import { useAnalyzeImage } from "../../src/hooks/useAnalyzeImage.js";
+import { useUploadGeography } from "../../src/hooks/useUploadGeography.js";
 
 
 const MAX_IMAGES = 1;
@@ -37,9 +37,7 @@ export default function GeographyTheoryScreen() {
   const [question, setQuestion] = useState("");
   const [dialog, setDialog] = useState(null);
 
-  // const { mutateAsync, isPending } = useAskAI();
-
-  const { mutate, isPending, data, error } = useAnalyzeImage();
+  const { mutate, isPending } = useUploadGeography();
 
   const pickImage = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -66,150 +64,158 @@ export default function GeographyTheoryScreen() {
 
   const handleGenerate = async () => {
     // 1. Basic Validation
-    if (images.length === 0) {
-      setDialog({ title: "Image required", message: "Please upload an image." });
+    // 2. Marks validation (Required for theory)
+    if (!marks) {
+      setDialog({ title: "Select marks", message: "Please select marks (1 to 6)." });
+      return;
+    }
+    if (!question.trim()) {
+      setDialog({ title: "Question required", message: "Please enter a question." });
       return;
     }
 
     // 2. FormData Prepare Karein
     const formData = new FormData();
 
-    // React Native mein image file object aise banta hai:
-    const imageUri = images[0];
-    const filename = imageUri.split('/').pop();
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : `image`;
+    if (images.length > 0) {
+      const imageUri = images[0];
+      const filename = imageUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image`;
 
-    formData.append("image", {
-      uri: Platform.OS === "android" ? imageUri : imageUri.replace("file://", ""),
-      name: filename || "upload.jpg",
-      type,
-    });
+      formData.append("image", {
+        uri: Platform.OS === "android" ? imageUri : imageUri.replace("file://", ""),
+        name: filename || "upload.jpg",
+        type,
+      });
+    }
 
-    // Agar question aur marks bhi bhejne hain backend ko:
-    formData.append("question", question || "Image-based Question");
-    if (marks) formData.append("marks", String(marks));
+    // Map analysis API (useUploadGeography) expects 'query'
+    formData.append("query", question.trim());
+    formData.append("marks", String(marks));
+    formData.append("mode", "theory");
 
     // 3. API Call trigger karein
     mutate(formData, {
-  onSuccess: (res) => {
-    console.log("Full Response:", res);
+      onSuccess: (res) => {
+        console.log("Full Response:", res);
 
-  const finalAnswer = res.data?.answer; // ✅ correct
-  const finalMarks = res.data?.marks;   // ✅ correct
+        // useUploadGeography key response mein explanation hota hai (MapAnalysisResponse)
+        const finalAnswer = res.data?.explanation || res.data?.answer; 
 
-    if (finalAnswer) {
-      router.push({
-        pathname: "/geography/solution",
-        params: {
-          answer: finalAnswer,
-          marks: String(finalMarks || marks),
-          imageCount: String(images.length),
-          mode: "theory",
-          question: question || "Geography Analysis",
-        },
-      });
-    } else {
-      Alert.alert("Error", "No answer received from backend.");
-    }
-  },
-  onError: (err) => {
-    console.error("Mutation Error:", err);
-    setDialog({
-      title: "Error",
-      message: err.message || "Something went wrong",
+        if (finalAnswer) {
+          router.push({
+            pathname: "/geography/solution",
+            params: {
+              answer: finalAnswer,
+              marks: String(marks),
+              imageCount: String(images.length),
+              image: images[0] || null, // Pass image URI
+              mode: "theory",
+              question: question.trim(),
+            },
+          });
+        } else {
+          Alert.alert("Error", "No answer received from backend.");
+        }
+      },
+      onError: (err) => {
+        console.error("Mutation Error:", err);
+        setDialog({
+          title: "Error",
+          message: err.message || "Something went wrong",
+        });
+      },
     });
-  },
-});
-};
+  };
 
 
-return (
-  <LinearGradient
-    colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
-    className="flex-1"
-  >
-    <AppDecor />
-    <SafeAreaView style={styles.safe}>
-      <ThemedMessageModal
-        visible={!!dialog}
-        title={dialog?.title}
-        message={dialog?.message ?? ""}
-        onClose={() => setDialog(null)}
-      />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.flex}
-      >
-        <ScrollView
+  return (
+    <LinearGradient
+      colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
+      className="flex-1"
+    >
+      <AppDecor />
+      <SafeAreaView style={styles.safe}>
+        <ThemedMessageModal
+          visible={!!dialog}
+          title={dialog?.title}
+          message={dialog?.message ?? ""}
+          onClose={() => setDialog(null)}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
         >
-          <ScreenHeader
-            onBack={() => router.back()}
-            title="Geography - Theory"
-            subtitle="Text-based structure with marks: 1 to 6"
-            icon="book-open-page-variant"
-          />
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            <ScreenHeader
+              onBack={() => router.back()}
+              title="Geography - Theory"
+              subtitle="Text-based structure with marks: 1 to 6"
+              icon="book-open-page-variant"
+            />
 
-          <View style={styles.card}>
-            <SectionCard label="Your question" icon="pencil-outline">
-              <QuestionInput
-                hideLabel
-                value={question}
-                onChangeText={setQuestion}
-                placeholder="Ask anything about geography..."
-              />
-            </SectionCard>
+            <View style={styles.card}>
+              <SectionCard label="Your question" icon="pencil-outline">
+                <QuestionInput
+                  hideLabel
+                  value={question}
+                  onChangeText={setQuestion}
+                  placeholder="Ask anything about geography..."
+                />
+              </SectionCard>
 
-            <Text style={styles.uploadLabel}>
-              Upload Image (Required, max {MAX_IMAGES})
-            </Text>
+              <Text style={styles.uploadLabel}>
+                Upload Image (Optional, max {MAX_IMAGES})
+              </Text>
 
-            <View style={styles.grid}>
-              {images.map((uri, idx) => (
-                <View key={`${uri}-${idx}`} style={styles.thumbWrap}>
-                  <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
+              <View style={styles.grid}>
+                {images.map((uri, idx) => (
+                  <View key={`${uri}-${idx}`} style={styles.thumbWrap}>
+                    <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
+                    <Pressable
+                      onPress={() => removeAt(idx)}
+                      style={styles.removeFab}
+                      hitSlop={8}
+                    >
+                      <MaterialCommunityIcons
+                        name="close-circle"
+                        size={22}
+                        color={Colors.white}
+                      />
+                    </Pressable>
+                  </View>
+                ))}
+
+                {images.length < MAX_IMAGES && (
                   <Pressable
-                    onPress={() => removeAt(idx)}
-                    style={styles.removeFab}
-                    hitSlop={8}
+                    onPress={pickImage}
+                    style={({ pressed }) => [
+                      styles.addTile,
+                      pressed && { opacity: 0.88 },
+                    ]}
                   >
                     <MaterialCommunityIcons
-                      name="close-circle"
-                      size={22}
-                      color={Colors.white}
+                      name="image-plus"
+                      size={78}
+                      color={Colors.accent}
                     />
+                    <Text style={styles.addTileText}>
+                      Add ({images.length}/{MAX_IMAGES})
+                    </Text>
                   </Pressable>
-                </View>
-              ))}
+                )}
+              </View>
 
-              {images.length < MAX_IMAGES && (
-                <Pressable
-                  onPress={pickImage}
-                  style={({ pressed }) => [
-                    styles.addTile,
-                    pressed && { opacity: 0.88 },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="image-plus"
-                    size={78}
-                    color={Colors.accent}
-                  />
-                  <Text style={styles.addTileText}>
-                    Add ({images.length}/{MAX_IMAGES})
-                  </Text>
-                </Pressable>
-              )}
-            </View>
+              <Text style={styles.marksLabel}>Select Marks (1 to 6)</Text>
 
-            {/* <Text style={styles.marksLabel}>Marks (answer length)</Text> */}
-
-            {/* <View style={styles.marksRow}>
+              <View style={styles.marksRow}>
                 {[1, 2, 3, 4, 5, 6].map((m) => (
                   <Pressable
                     key={m}
@@ -229,26 +235,26 @@ return (
                     </Text>
                   </Pressable>
                 ))}
-              </View> */}
+              </View>
 
-            {isPending && (
-              <ActivityIndicator
-                style={{ marginBottom: 10 }}
-                color={Colors.accent}
+              {isPending && (
+                <ActivityIndicator
+                  style={{ marginBottom: 10 }}
+                  color={Colors.accent}
+                />
+              )}
+
+              <PrimaryButton
+                title={isPending ? "Generating..." : "Generate answer"}
+                handlePress={handleGenerate}
+                disabled={isPending}
               />
-            )}
-
-            <PrimaryButton
-              title={isPending ? "Generating..." : "Generate answer"}
-              handlePress={handleGenerate}
-              disabled={isPending}
-            />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  </LinearGradient>
-);
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
+  );
 }
 
 const styles = StyleSheet.create({

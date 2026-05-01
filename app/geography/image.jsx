@@ -17,21 +17,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
-import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
-import SectionCard from "../../components/shared/SectionCard";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
-import { useUploadGeography } from "../../src/hooks/useUploadGeography.js";
+import { useAnalyzeImage } from "../../src/hooks/useAnalyzeImage.js";
 
-const MAX_IMAGES = 3;
+const MAX_IMAGES = 1;
 
 export default function GeographyImageScreen() {
   const router = useRouter();
-  const [marks, setMarks] = useState(null);
   const [images, setImages] = useState([]);
-  const [question, setQuestion] = useState("");
-  const [imageType, setImageType] = useState("map");
   const [dialog, setDialog] = useState(null);
 
 
@@ -60,26 +55,15 @@ export default function GeographyImageScreen() {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const { mutate, isPending } = useUploadGeography(); // ✅ add karo
+  const { mutate, isPending } = useAnalyzeImage();
 
   const handleGenerate = () => {
     if (images.length === 0) {
-      setDialog({ title: "Image required", message: "Please upload at least one image." });
-      return;
-    }
-    if (!question.trim()) {
-      setDialog({ title: "Missing question", message: "Please enter a question first." });
-      return;
-    }
-    if (marks == null) {
-      setDialog({ title: "Select marks", message: "Please select marks." });
+      setDialog({ title: "Image required", message: "Please upload an image." });
       return;
     }
 
-    // FormData banao
     const formData = new FormData();
-
-    // 1. Sirf pehli image bhejni hai (Postman ke mutabiq single file key 'image')
     const uri = images[0];
     const filename = uri.split("/").pop();
     const match = /\.(\w+)$/.exec(filename);
@@ -90,46 +74,33 @@ export default function GeographyImageScreen() {
       name: filename || `upload_0.jpg`,
       type,
     });
-    formData.append("query", question.trim());
-    formData.append("marks", String(marks));
+    
+    // Default system-style question for pure image analysis
+    formData.append("query", "Describe and explain the geographical features shown in this figure.");
+    formData.append("marks", "4");
 
-    console.log("Sending Marks:", marks); // Dekhein marks null toh nahi
-    console.log("Sending Question:", question);
-
-    // ✅ Real API call
     mutate(formData, {
-      // GeographyImageScreen.js ke onSuccess mein ye change karein:
-
       onSuccess: (res) => {
-        console.log("BACKEND_RAW:", res.data);
-
         const responseBody = res?.data;
+        // Analyze_Image_Question returns 'answer' in data
+        const finalAnswer = responseBody?.explanation || responseBody?.answer;
 
-        // ❌ OLD CHECK HATAO
-        // if (responseBody && responseBody.success === true)
-
-        // ✅ NEW CHECK
-        if (responseBody && responseBody.explanation) {
-          console.log("SUCCESS HAI BHAII!");
-
+        if (finalAnswer) {
           router.push({
             pathname: "/geography/solution",
             params: {
-              marks: String(marks),
+              marks: "4",
               imageCount: String(images.length),
+              image: images[0] || null, // Pass image URI
               mode: "image",
-              queryType: imageType,
-              question: question.trim(),
-              answer: responseBody.explanation,
-              features: JSON.stringify(responseBody.features || []),
-
+              queryType: "analysis",
+              question: "Image Analysis",
+              answer: finalAnswer,
+              features: JSON.stringify(responseBody?.features || []),
             },
           });
         } else {
-          setDialog({
-            title: "Invalid Response",
-            message: "Backend response format incorrect"
-          });
+          setDialog({ title: "Invalid Response", message: "Backend response format incorrect" });
         }
       },
       onError: (err) => {
@@ -170,16 +141,8 @@ export default function GeographyImageScreen() {
             />
 
             <View style={styles.card}>
-              <SectionCard label="Question" icon="help-circle-outline">
-                <QuestionInput
-                  hideLabel
-                  value={question}
-                  onChangeText={setQuestion}
-                />
-              </SectionCard>
-
               <Text style={styles.uploadLabel}>
-                Source images (max {MAX_IMAGES})
+                Source image (max 1)
               </Text>
 
               <View style={styles.grid}>
@@ -200,7 +163,7 @@ export default function GeographyImageScreen() {
                   </View>
                 ))}
 
-                {images.length < MAX_IMAGES && (
+                {images.length < 1 && (
                   <Pressable
                     onPress={pickImage}
                     style={({ pressed }) => [
@@ -214,62 +177,20 @@ export default function GeographyImageScreen() {
                       color={Colors.accent}
                     />
                     <Text style={styles.addTileText}>
-                      Add ({images.length}/{MAX_IMAGES})
+                      Add Image
                     </Text>
                   </Pressable>
                 )}
               </View>
 
               <Text style={styles.uploadHint}>
-                Upload photos of maps, diagrams, or sources — then generate an image-based answer.
+                Upload a photo of a geography map, graph, or diagram to get a detailed examiner-style analysis.
               </Text>
 
-              <Text style={styles.marksLabel}>Marks (answer length)</Text>
-              <View style={styles.marksRow}>
-                {[3, 7, 14].map((m) => (
-                  <Pressable
-                    key={m}
-                    onPress={() => setMarks(m)}
-                    style={[
-                      styles.markChip,
-                      marks === m && styles.markChipActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.markChipText,
-                        marks === m && styles.markChipTextActive,
-                      ]}
-                    >
-                      {m} marks
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Text style={styles.marksLabel}>Image Type</Text>
-              <View style={styles.marksRow}>
-                <Pressable
-                  onPress={() => setImageType("map")}
-                  style={[styles.markChip, imageType === "map" && styles.markChipActive]}
-                >
-                  <Text style={[styles.markChipText, imageType === "map" && styles.markChipTextActive]}>
-                    Map
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setImageType("graph")}
-                  style={[styles.markChip, imageType === "graph" && styles.markChipActive]}
-                >
-                  <Text style={[styles.markChipText, imageType === "graph" && styles.markChipTextActive]}>
-                    Graph
-                  </Text>
-                </Pressable>
-              </View>
-
               <PrimaryButton
-                title="Generate image answer"
+                title="Generate ans"
                 handlePress={handleGenerate}
+                disabled={isPending}
               />
             </View>
           </ScrollView>

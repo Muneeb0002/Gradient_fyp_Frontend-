@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GeoAnswerCard from "../../components/geography/GeoAnswerCard";
 import GeoFeatures from "../../components/geography/GeoFeatures";
@@ -65,13 +65,21 @@ export default function GeographySolution() {
               icon="file-document-outline"
             />
 
-            <SectionCard label="Question" icon="help-circle-outline">
+            {params.image && (
+              <SectionCard label="Source Image" icon="image-outline">
+                <View style={styles.imageBox}>
+                  <Image 
+                    source={{ uri: params.image }} 
+                    style={styles.sourceImg} 
+                    resizeMode="contain" 
+                  />
+                </View>
+              </SectionCard>
+            )}
+
+            <SectionCard label="The Question" icon="pencil-outline">
               <Text style={styles.qText}>
-                {question?.trim()
-                  ? question
-                  : modeValue === "image"
-                    ? "(Optional — add context in Image mode if you like.)"
-                    : "No question provided."}
+                {question?.trim() ? question : "Geography Analysis"}
               </Text>
             </SectionCard>
 
@@ -107,37 +115,53 @@ export default function GeographySolution() {
         >
           <ScreenHeader
             onBack={() => router.back()}
-            title="Geography solution"
-            subtitle="AI breakdown — keywords, map, and examiner-style points."
+            title="Geography Solution"
+            subtitle="Expert breakdown based on your input."
             icon="map-marker-radius"
           />
 
-          <SectionCard label="Question Analyzed" icon="help-circle-outline">
+          {params.image && (
+            <SectionCard label="Source Image" icon="image-outline">
+              <View style={styles.imageBox}>
+                <Image 
+                  source={{ uri: params.image }} 
+                  style={styles.sourceImg} 
+                  resizeMode="contain" 
+                />
+              </View>
+            </SectionCard>
+          )}
+
+          <SectionCard label="The Question" icon="help-circle-outline">
             <Text style={styles.qText}>
-              {question || "Explain the formation of river deltas with reference to the Nile Delta."}
+              {question || "Geographical Analysis"}
             </Text>
           </SectionCard>
 
           <View style={{ height: 16 }} />
 
-          <View style={styles.block}>
-            <GeoFeatures data={parsedFeatures} />
-          </View>
+          {parsedFeatures.length > 0 && (
+            <>
+              <View style={{ height: 16 }} />
+              <View style={styles.block}>
+                <GeoFeatures data={parsedFeatures} />
+              </View>
 
-          <View style={{ height: 12 }} />
+              <View style={{ height: 12 }} />
 
-          <View style={styles.block}>
-            {/* Yahan features ko pass karein taaki map par points dikhen */}
-            {queryType === "graph"
-              ? <GeoGraph data={parsedFeatures} />
-              : <GeoMap data={parsedFeatures} />
-            }
-          </View>
-          <View style={{ height: 12 }} />
+              <View style={styles.block}>
+                {queryType === "graph"
+                  ? <GeoGraph data={parsedFeatures} />
+                  : <GeoMap data={parsedFeatures} />
+                }
+              </View>
+              <View style={{ height: 12 }} />
+            </>
+          )}
 
           <GeoAnswerCard
             queryType={queryType || "text"}
-            answer={answer} // Explanation yahan pass karein
+            answer={answer}
           />
         </ScrollView>
       </SafeAreaView>
@@ -183,5 +207,17 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 6 },
     }),
+  },
+  imageBox: {
+    width: "100%",
+    height: 200,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    marginTop: 4,
+  },
+  sourceImg: {
+    width: "100%",
+    height: "100%",
   },
 });
