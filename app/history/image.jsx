@@ -6,7 +6,6 @@ import { useState } from "react";
 import {
   Alert,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -18,9 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
-import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
-import SectionCard from "../../components/shared/SectionCard";
 
 import useHistoryImageTheory from "../../src/hooks/useHistoryImageTheory";
 
@@ -32,8 +29,6 @@ export default function HistoryImageScreen() {
   const router = useRouter();
 
   const [marks, setMarks] = useState(3);
-  const [question, setQuestion] = useState("");
-
   const [images, setImages] = useState([]);
 
   const { mutate: analyzeImageTheory, isPending } = useHistoryImageTheory();
@@ -44,7 +39,12 @@ export default function HistoryImageScreen() {
   const pickImage = async () => {
     try {
       if (images.length >= MAX_IMAGES) {
-        Alert.alert("Limit reached", `You can add up to ${MAX_IMAGES} image.`);
+        Alert.alert(
+          "Limit reached",
+          MAX_IMAGES === 1
+            ? "Only 1 source image is allowed."
+            : `You can add up to ${MAX_IMAGES} images.`,
+        );
         return;
       }
 
@@ -54,7 +54,7 @@ export default function HistoryImageScreen() {
       if (!permission.granted) {
         Alert.alert(
           "Permission required",
-          "Please allow gallery access to upload image."
+          "Please allow gallery access to upload image.",
         );
         return;
       }
@@ -93,54 +93,52 @@ export default function HistoryImageScreen() {
   const removeAt = (idx) => {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
-  
+
   const handleGenerate = async () => {
-  try {
-    if (!images.length) {
-      Alert.alert("Image required", "Please upload an image first.");
-      return;
+    try {
+      if (!images.length) {
+        Alert.alert("Image required", "Please upload an image first.");
+        return;
+      }
+
+      const payload = {
+        marks: String(marks),
+        imageUri: images[0].uri,
+      };
+
+      analyzeImageTheory(payload, {
+        onSuccess: (response) => {
+          const finalAnswer =
+            response?.data?.answer ||
+            response?.data?.data?.answer ||
+            response?.answer ||
+            response?.result ||
+            "No answer generated";
+
+          router.push({
+            pathname: "/history/solution",
+            params: {
+              marks: String(marks),
+              mode: "image",
+              imageCount: String(images.length),
+              sourceImageUri: encodeURIComponent(images[0].uri),
+              answer: finalAnswer,
+            },
+          });
+        },
+
+        onError: (error) => {
+          Alert.alert(
+            "Analysis Failed",
+            error?.message || "Something went wrong",
+          );
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Error", "Failed to process image.");
     }
-
-    // ✅ FIXED: "query" field + marks String
-    const payload = {
-      query: question?.trim() || "Explain this image properly",
-      marks: String(marks),
-      imageUri: images[0].uri,
-    };
-
-    analyzeImageTheory(payload, {
-      onSuccess: (response) => {
-        const finalAnswer =
-          response?.data?.answer ||
-          response?.data?.data?.answer ||
-          response?.answer ||
-          response?.result ||
-          "No answer generated";
-
-        router.push({
-          pathname: "/history/solution",
-          params: {
-            marks: String(marks),
-            mode: "image",
-            imageCount: String(images.length),
-            question: question?.trim() || "Image Analysis",
-            answer: finalAnswer,
-          },
-        });
-      },
-
-      onError: (error) => {
-        Alert.alert(
-          "Analysis Failed",
-          error?.message || "Something went wrong"
-        );
-      },
-    });
-  } catch (error) {
-    console.log(error);
-    Alert.alert("Error", "Failed to process image.");
-  }
-};
+  };
 
   return (
     <LinearGradient
@@ -154,10 +152,6 @@ export default function HistoryImageScreen() {
       <AppDecor />
 
       <SafeAreaView style={styles.safe}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
           <ScrollView
             style={styles.flex}
             contentContainerStyle={styles.scrollContent}
@@ -174,23 +168,9 @@ export default function HistoryImageScreen() {
 
             {/* MAIN CARD */}
             <View style={styles.card}>
-              {/* QUESTION */}
-              <SectionCard
-                label="Question (optional)"
-                icon="help-circle-outline"
-              >
-                <QuestionInput
-                  hideLabel
-                  value={question}
-                  onChangeText={setQuestion}
-                />
-              </SectionCard>
-
-              {/* IMAGE UPLOAD */}
               <Text style={styles.uploadLabel}>
                 Source image (max {MAX_IMAGES})
               </Text>
-
               <View style={styles.grid}>
                 {/* IMAGE PREVIEW */}
                 {images.map((item, idx) => (
@@ -235,17 +215,12 @@ export default function HistoryImageScreen() {
                   </Pressable>
                 )}
               </View>
-
               <Text style={styles.uploadHint}>
                 Upload notes, diagrams, maps, or history source images for
                 AI-based answer generation.
               </Text>
-
               {/* MARKS */}
-              <Text style={styles.marksLabel}>
-                Marks (answer length)
-              </Text>
-
+              <Text style={styles.marksLabel}>Marks (answer length)</Text>
               <View style={styles.marksRow}>
                 {[3, 5].map((m) => (
                   <Pressable
@@ -267,16 +242,14 @@ export default function HistoryImageScreen() {
                   </Pressable>
                 ))}
               </View>
-
               {/* SUBMIT */}
               <PrimaryButton
-                title={isPending ? "Generating..." : "Generate image answer"}
+                title="Generate image answer"
                 handlePress={handleGenerate}
-                disabled={isPending}
+                isLoading={isPending}
               />
             </View>
           </ScrollView>
-        </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -322,7 +295,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: "700",
-    marginTop: 16,
+    marginTop: 6,
     marginBottom: 10,
   },
 

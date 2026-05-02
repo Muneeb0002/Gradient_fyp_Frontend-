@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 const api = axios.create({
   baseURL:
     Platform.OS === "android"
-      ? "http://10.73.252.130:4000/api"
+      ? "http://10.73.252.62:7000/api"
       : "http://localhost:4000/api",
 });
 
