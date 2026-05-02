@@ -20,7 +20,7 @@ import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
-import { useAnalyzeImage } from "../../src/hooks/useAnalyzeImage.js";
+import { useGeographyAnalyzeImage } from "../../src/hooks/useGeographyAnalyzeImage.js";
 
 const MAX_IMAGES = 1;
 
@@ -55,59 +55,58 @@ export default function GeographyImageScreen() {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const { mutate, isPending } = useAnalyzeImage();
+  const { mutate, isPending } = useGeographyAnalyzeImage();
 
   const handleGenerate = () => {
-    if (images.length === 0) {
-      setDialog({ title: "Image required", message: "Please upload an image." });
-      return;
-    }
+  if (images.length === 0) {
+    setDialog({ title: "Image required", message: "Please upload an image." });
+    return;
+  }
 
-    const formData = new FormData();
-    const uri = images[0];
-    const filename = uri.split("/").pop();
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : "image/jpeg";
+  const formData = new FormData();
+  const uri = images[0];
+  const filename = uri.split("/").pop();
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : "image/jpeg";
 
-    formData.append("image", {
-      uri: Platform.OS === "android" ? uri : uri.replace("file://", ""),
-      name: filename || `upload_0.jpg`,
-      type,
-    });
-    
-    // Default system-style question for pure image analysis
-    formData.append("query", "Describe and explain the geographical features shown in this figure.");
-    formData.append("marks", "4");
+  // Postman screenshot image_2f0633.png ke mutabiq sirf 'images' key bhejni hai
+  formData.append("images", {
+    uri: Platform.OS === "android" ? uri : uri.replace("file://", ""),
+    name: filename || `upload.jpg`,
+    type,
+  });
 
-    mutate(formData, {
-      onSuccess: (res) => {
-        const responseBody = res?.data;
-        // Analyze_Image_Question returns 'answer' in data
-        const finalAnswer = responseBody?.explanation || responseBody?.answer;
+  mutate(formData, {
+    onSuccess: (res) => {
+      // Backend response structure: res.data.answer
+      const responseData = res?.data;
+      const finalAnswer = responseData?.answer;
 
-        if (finalAnswer) {
-          router.push({
-            pathname: "/geography/solution",
-            params: {
-              marks: "4",
-              imageCount: String(images.length),
-              image: images[0] || null, // Pass image URI
-              mode: "image",
-              queryType: "analysis",
-              question: "Image Analysis",
-              answer: finalAnswer,
-              features: JSON.stringify(responseBody?.features || []),
-            },
-          });
-        } else {
-          setDialog({ title: "Invalid Response", message: "Backend response format incorrect" });
-        }
-      },
-      onError: (err) => {
-        setDialog({ title: "Error", message: err.message || "Something went wrong" });
-      },
-    });
-  };
+      if (finalAnswer) {
+        router.push({
+          pathname: "/geography/solution",
+          params: {
+            answer: finalAnswer,
+            // Backend agar marks bhej raha hai toh wo use karein, warna default 4
+            marks: String(responseData?.marks || "4"), 
+            image: images[0],
+            mode: "image",
+            queryType: "analysis",
+            question: "Image Analysis",
+            // Agar features hain toh pass karein, warna khali array
+            features: JSON.stringify(responseData?.features || []),
+          },
+        });
+      } else {
+        // Agar backend "relevant nahi hai" wala message de (jaisa screenshot mein hai)
+        setDialog({ title: "Note", message: "Image is not geography-related." });
+      }
+    },
+    onError: (err) => {
+      setDialog({ title: "Error", message: err.message || "Network Error" });
+    },
+  });
+};
 
   return (
     <LinearGradient

@@ -1,8 +1,8 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import * as ImagePicker from "expo-image-picker";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   Alert,
@@ -18,16 +18,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
-import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
+import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
-// import { useAskAI } from "../../src/hooks/useAskAI.js";
 
-import { useUploadGeography } from "../../src/hooks/useUploadGeography.js";
-
-
+import { useGeographyTheoryData } from "../../src/hooks/useGeographyTheoryData.js";
 const MAX_IMAGES = 1;
 
 export default function GeographyTheoryScreen() {
@@ -37,7 +34,7 @@ export default function GeographyTheoryScreen() {
   const [question, setQuestion] = useState("");
   const [dialog, setDialog] = useState(null);
 
-  const { mutate, isPending } = useUploadGeography();
+  const { mutate, isPending } = useGeographyTheoryData();
 
   const pickImage = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -61,74 +58,56 @@ export default function GeographyTheoryScreen() {
   const removeAt = (idx) => {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
-
   const handleGenerate = async () => {
-    // 1. Basic Validation
-    // 2. Marks validation (Required for theory)
-    if (!marks) {
-      setDialog({ title: "Select marks", message: "Please select marks (1 to 6)." });
-      return;
-    }
-    if (!question.trim()) {
-      setDialog({ title: "Question required", message: "Please enter a question." });
-      return;
-    }
+  if (!marks) {
+    setDialog({ title: "Select marks", message: "Please select marks (1 to 6)." });
+    return;
+  }
+  if (!question.trim()) {
+    setDialog({ title: "Question required", message: "Please enter a question." });
+    return;
+  }
 
-    // 2. FormData Prepare Karein
-    const formData = new FormData();
+  // Postman ke format ke mutabiq payload
+  const payload = {
+    query: question.trim(),
+    marks: String(marks)
+  };
 
-    if (images.length > 0) {
-      const imageUri = images[0];
-      const filename = imageUri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image`;
+  mutate(payload, {
+    // GeographyTheoryScreen.js ke handleGenerate mein mutation check karein
+onSuccess: (res) => {
+  console.log("Full Response:", res);
 
-      formData.append("image", {
-        uri: Platform.OS === "android" ? imageUri : imageUri.replace("file://", ""),
-        name: filename || "upload.jpg",
-        type,
-      });
-    }
+  // LOG ke mutabiq data nested hai: res.data.explanation
+  const finalAnswer = res.data?.explanation; 
 
-    // Map analysis API (useUploadGeography) expects 'query'
-    formData.append("query", question.trim());
-    formData.append("marks", String(marks));
-    formData.append("mode", "theory");
-
-    // 3. API Call trigger karein
-    mutate(formData, {
-      onSuccess: (res) => {
-        console.log("Full Response:", res);
-
-        // useUploadGeography key response mein explanation hota hai (MapAnalysisResponse)
-        const finalAnswer = res.data?.explanation || res.data?.answer; 
-
-        if (finalAnswer) {
-          router.push({
-            pathname: "/geography/solution",
-            params: {
-              answer: finalAnswer,
-              marks: String(marks),
-              imageCount: String(images.length),
-              image: images[0] || null, // Pass image URI
-              mode: "theory",
-              question: question.trim(),
-            },
-          });
-        } else {
-          Alert.alert("Error", "No answer received from backend.");
-        }
+  if (finalAnswer) {
+    router.push({
+      pathname: "/geography/solution",
+      params: {
+        answer: finalAnswer, // Yahan string jaani chahiye
+        marks: String(marks),
+        mode: "theory",
+        question: question.trim(),
+        // features agar bhejne hain toh stringify karke:
+        features: JSON.stringify(res.data?.features || []),
       },
-      onError: (err) => {
+    });
+  } else {
+    Alert.alert("Error", "Answer field missing in response");
+  }
+},
+    onError: (err) => {
         console.error("Mutation Error:", err);
         setDialog({
           title: "Error",
           message: err.message || "Something went wrong",
         });
       },
-    });
-  };
 
+  });
+};
 
   return (
     <LinearGradient

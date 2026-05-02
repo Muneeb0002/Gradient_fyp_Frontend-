@@ -1,8 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
-import { analyzeImageQuestion } from "../geographyApi/analyzeImageQuestion.js";
-export const useAnalyzeImage = () => {
+import { geographyAnalyzeImageQuestionApi } from "../geographyApi/geographyAnalyzeImageQuestionApi.js";
+
+export const useGeographyAnalyzeImage = () => {
   return useMutation({
-    mutationFn: (formData) => analyzeImageQuestion(formData),
+    mutationFn: (formData) => geographyAnalyzeImageQuestionApi(formData),
     
     onSuccess: (data) => {
       console.log("Success! Image analyzed:", data);

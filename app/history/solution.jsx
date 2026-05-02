@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import HistoryAnswerCard from "../../components/history/HistoryAnswerCard";
 import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
@@ -10,12 +11,20 @@ import Colors from "../../constants/Colors";
 
 export default function HistorySolutionScreen() {
   const router = useRouter();
-  
-  // ✅ answer aur question bhi lo
-  const { marks, imageCount, mode, answer, question } = useLocalSearchParams();
-  
+
+  const { marks, imageCount, mode, answer, question } =
+    useLocalSearchParams();
+
   const modeValue = mode === "image" ? "image" : "theory";
   const modeLabel = modeValue === "image" ? "Image-based" : "Theory-based";
+
+  // 🔥 SAFE ANSWER FIX
+  const cleanAnswer =
+    typeof answer === "string"
+      ? answer
+      : answer
+      ? JSON.stringify(answer, null, 2)
+      : "No answer generated";
 
   return (
     <LinearGradient
@@ -24,10 +33,11 @@ export default function HistorySolutionScreen() {
         Colors.backgroundMiddle,
         Colors.backgroundEnd,
       ]}
-      className="flex-1"
+      style={{ flex: 1 }}
     >
       <AppDecor />
-      <SafeAreaView className="flex-1">
+
+      <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
@@ -37,13 +47,15 @@ export default function HistorySolutionScreen() {
             title="Model answer"
             subtitle={`${modeLabel} · Target: ${marks ?? "?"} marks${
               imageCount && Number(imageCount) > 0
-                ? ` · ${imageCount} source image${Number(imageCount) > 1 ? "s" : ""}`
+                ? ` · ${imageCount} source image${
+                    Number(imageCount) > 1 ? "s" : ""
+                  }`
                 : ""
-            } — structure your paragraphs like this.`}
+            }`}
             icon="file-document-outline"
           />
 
-          {/* ✅ Dynamic question */}
+          {/* QUESTION */}
           <SectionCard label="Question" icon="help-circle-outline">
             <Text style={styles.qText}>
               {question || "No question provided."}
@@ -52,9 +64,13 @@ export default function HistorySolutionScreen() {
 
           <View style={{ height: 16 }} />
 
+          {/* ANSWER */}
           <View style={styles.answerWrap}>
-            {/* ✅ answer prop pass karo */}
-            <HistoryAnswerCard marks={marks} mode={modeValue} answer={answer} />
+            <HistoryAnswerCard
+              marks={marks}
+              mode={modeValue}
+              answer={cleanAnswer}   // ✅ FIXED HERE
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -68,11 +84,13 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
     paddingTop: 8,
   },
+
   qText: {
     color: Colors.white,
     fontSize: 16,
     lineHeight: 26,
   },
+
   answerWrap: {
     borderRadius: 20,
     overflow: "hidden",

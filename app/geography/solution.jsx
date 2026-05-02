@@ -15,7 +15,8 @@ import Colors from "../../constants/Colors";
 export default function GeographySolution() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { answer, marks, imageCount, mode, paths, queryType } = params;
+  const { answer, marks, imageCount, mode, queryType } = params;
+
   const questionRaw = params.question;
   const question =
     typeof questionRaw === "string"
@@ -24,79 +25,27 @@ export default function GeographySolution() {
         ? questionRaw[0]
         : undefined;
 
-  const modeValue = mode === "image" ? "image" : mode === "theory" ? "theory" : null;
-  const isExamMode = modeValue === "theory"; // "image" hata diya
-  const modeLabel = modeValue === "image" ? "Image-based" : "Theory-based";
-
-  // const parsedPaths = paths ? JSON.parse(paths) : null;
-   const  parsedFeatures = params.features ? JSON.parse(params.features) : [];
-
-  console.log("FEATURES FINAL:", parsedFeatures);
-
-  console.log("GEOFEATURES PROP CHECK:", parsedFeatures.length);
-
-  console.log("Current Mode:", modeValue);
-  console.log("Received Answer:", answer);
-  const displayAnswer = typeof answer === 'string' ? answer : JSON.stringify(answer);
-
-  if (isExamMode) {
-    return (
-      <LinearGradient
-        colors={[
-          Colors.backgroundStart,
-          Colors.backgroundMiddle,
-          Colors.backgroundEnd,
-        ]}
-        className="flex-1"
-      >
-        <AppDecor />
-        <SafeAreaView className="flex-1">
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scroll}
-          >
-            <ScreenHeader
-              onBack={() => router.back()}
-              title="Geography — model answer"
-              subtitle={`${modeLabel} · Target: ${marks ?? "?"} marks${imageCount && Number(imageCount) > 0
-                ? ` · ${imageCount} source image${Number(imageCount) > 1 ? "s" : ""}`
-                : ""
-                } — structure your paragraphs like this.`}
-              icon="file-document-outline"
-            />
-
-            {params.image && (
-              <SectionCard label="Source Image" icon="image-outline">
-                <View style={styles.imageBox}>
-                  <Image 
-                    source={{ uri: params.image }} 
-                    style={styles.sourceImg} 
-                    resizeMode="contain" 
-                  />
-                </View>
-              </SectionCard>
-            )}
-
-            <SectionCard label="The Question" icon="pencil-outline">
-              <Text style={styles.qText}>
-                {question?.trim() ? question : "Geography Analysis"}
-              </Text>
-            </SectionCard>
-
-            <View style={{ height: 16 }} />
-
-            <View style={styles.answerWrap}>
-              {answer ? (
-                <HistoryAnswerCard marks={marks} mode={modeValue} answer={answer} />
-              ) : (
-                <Text style={{ color: 'white' }}>No answer found in params</Text>
-              )}
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </LinearGradient>
-    );
+  // ✅ Features safely parse karo
+  let parsedFeatures = [];
+  try {
+    if (params.features) {
+      const parsed = JSON.parse(params.features);
+      parsedFeatures = Array.isArray(parsed) ? parsed : [];
+    }
+  } catch (e) {
+    console.log("Features parse error:", e);
+    parsedFeatures = [];
   }
+
+  const modeValue =
+    mode === "image" ? "image" : mode === "theory" ? "theory" : null;
+  const modeLabel = modeValue === "image" ? "Image-based" : "Theory-based";
+  const hasFeatures = parsedFeatures.length > 0;
+
+  // ✅ DEBUG
+  console.log("parsedFeatures:", JSON.stringify(parsedFeatures, null, 2));
+  console.log("hasFeatures:", hasFeatures);
+  console.log("mode:", modeValue);
 
   return (
     <LinearGradient
@@ -116,33 +65,45 @@ export default function GeographySolution() {
           <ScreenHeader
             onBack={() => router.back()}
             title="Geography Solution"
-            subtitle="Expert breakdown based on your input."
-            icon="map-marker-radius"
+            subtitle={
+              modeValue
+                ? `${modeLabel} · Target: ${marks ?? "?"} marks${
+                    imageCount && Number(imageCount) > 0
+                      ? ` · ${imageCount} source image${
+                          Number(imageCount) > 1 ? "s" : ""
+                        }`
+                      : ""
+                  }`
+                : "Expert breakdown based on your input."
+            }
+            icon="map-marker-radius"  // ✅ Valid icon
           />
 
+          {/* Source Image */}
           {params.image && (
             <SectionCard label="Source Image" icon="image-outline">
               <View style={styles.imageBox}>
-                <Image 
-                  source={{ uri: params.image }} 
-                  style={styles.sourceImg} 
-                  resizeMode="contain" 
+                <Image
+                  source={{ uri: params.image }}
+                  style={styles.sourceImg}
+                  resizeMode="contain"
                 />
               </View>
             </SectionCard>
           )}
 
+          {/* Question */}
           <SectionCard label="The Question" icon="help-circle-outline">
             <Text style={styles.qText}>
-              {question || "Geographical Analysis"}
+              {question?.trim() ? question : "Geographical Analysis"}
             </Text>
           </SectionCard>
 
           <View style={{ height: 16 }} />
 
-          {parsedFeatures.length > 0 && (
+          {/* ✅ Features + Map — THEORY MODE MEIN BHI DIKHAO */}
+          {hasFeatures && (
             <>
-              <View style={{ height: 16 }} />
               <View style={styles.block}>
                 <GeoFeatures data={parsedFeatures} />
               </View>
@@ -150,19 +111,38 @@ export default function GeographySolution() {
               <View style={{ height: 12 }} />
 
               <View style={styles.block}>
-                {queryType === "graph"
-                  ? <GeoGraph data={parsedFeatures} />
-                  : <GeoMap data={parsedFeatures} />
-                }
+                {queryType === "graph" ? (
+                  <GeoGraph data={parsedFeatures} />
+                ) : (
+                  <GeoMap data={parsedFeatures} />
+                )}
               </View>
-              <View style={{ height: 12 }} />
+
+              <View style={{ height: 16 }} />
             </>
           )}
 
-          <GeoAnswerCard
-            queryType={queryType || "text"}
-            answer={answer}
-          />
+          {/* ✅ Answer Card */}
+          {modeValue === "theory" || modeValue === "image" ? (
+            <View style={styles.answerWrap}>
+              {answer ? (
+                <HistoryAnswerCard
+                  marks={marks}
+                  mode={modeValue}
+                  answer={answer}
+                />
+              ) : (
+                <Text style={{ color: "white", padding: 16 }}>
+                  No answer found.
+                </Text>
+              )}
+            </View>
+          ) : (
+            <GeoAnswerCard
+              queryType={queryType || "text"}
+              answer={answer}
+            />
+          )}
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
