@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { Image, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppDecor from "../components/shared/AppDecor";
-import GoogleButton from "../components/auth/GoogleButton";
 import PrimaryButton from "../components/auth/PrimaryButton";
 import SecondaryButton from "../components/auth/SecondaryButton";
 import Colors from "../constants/Colors";
@@ -94,15 +93,6 @@ export default function WelcomeScreen() {
             title="Sign Up"
             handlePress={() => router.push("/auth/signup")}
           />
-
-          <Text
-            className="text-center my-4 text-sm"
-            style={{ color: Colors.textMuted }}
-          >
-            or
-          </Text>
-
-          <GoogleButton handlePress={() => router.push("/auth/google-auth")} />
         </View>
       </SafeAreaView>
     </LinearGradient>

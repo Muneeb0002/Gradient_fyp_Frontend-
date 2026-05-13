@@ -7,6 +7,24 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 
+/** Static sample solution for UI only — replace with API output later. */
+const SAMPLE = {
+  question: "2x² + 4x + 10 = 0",
+  methodTitle: "Method",
+  methodBody:
+    "Treat as a quadratic in standard form ax² + bx + c = 0, then use the discriminant Δ = b² − 4ac to decide the type of roots before solving.",
+  workingTitle: "Working",
+  workingBody:
+    "Here a = 2, b = 4, c = 10.\n\n"
+    + "Δ = b² − 4ac = 4² − 4(2)(10) = 16 − 80 = −64.\n\n"
+    + "Since Δ < 0, there are no real roots. The solutions exist only in the complex numbers.",
+  examTitle: "How to write this in an exam",
+  examBody:
+    "State the discriminant, show its value is negative, then conclude “no real solutions” (or give complex roots if the question asks for them).",
+  finalLabel: "Final answer",
+  finalValue: "No real values of x satisfy the equation.",
+};
+
 export default function SolutionScreen() {
   const router = useRouter();
 
@@ -32,32 +50,39 @@ export default function SolutionScreen() {
             icon="lightbulb-on-outline"
           />
 
-          <SectionCard label="Question" icon="help-circle-outline">
-            <Text style={styles.bodyText}>Solve: x² - 5x + 6 = 0</Text>
-          </SectionCard>
+          <View style={styles.card}>
+            <SectionCard label="Question" icon="help-circle-outline">
+              <Text style={styles.bodyText}>{SAMPLE.question}</Text>
+            </SectionCard>
 
-          <View style={{ height: 14 }} />
+            <View style={styles.sectionGap} />
 
-          <SectionCard label="Step-by-step" icon="format-list-numbered">
-            <Text style={styles.bodyText}>
-              Step 1: Identify the equation{"\n"}
-              x² - 5x + 6 = 0{"\n\n"}
-              Step 2: Factorize{"\n"}
-              (x - 2)(x - 3) = 0{"\n\n"}
-              Step 3: Zero product{"\n"}x - 2 = 0 OR x - 3 = 0{"\n\n"}
-              Step 4: Solve{"\n"}x = 2 OR x = 3
-            </Text>
-          </SectionCard>
+            <SectionCard label={SAMPLE.methodTitle} icon="chart-bell-curve">
+              <Text style={styles.bodyTextMuted}>{SAMPLE.methodBody}</Text>
+            </SectionCard>
 
-          <LinearGradient
-            colors={[Colors.primaryDark, Colors.primary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.answerStrip}
-          >
-            <Text style={styles.answerLabel}>Final answer</Text>
-            <Text style={styles.answerValue}>x = 2, 3</Text>
-          </LinearGradient>
+            <View style={styles.sectionGap} />
+
+            <SectionCard label={SAMPLE.workingTitle} icon="format-list-numbered">
+              <Text style={styles.bodyText}>{SAMPLE.workingBody}</Text>
+            </SectionCard>
+
+            <View style={styles.sectionGap} />
+
+            <SectionCard label={SAMPLE.examTitle} icon="school-outline">
+              <Text style={styles.bodyTextMuted}>{SAMPLE.examBody}</Text>
+            </SectionCard>
+
+            <LinearGradient
+              colors={[Colors.primaryDark, Colors.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.answerStrip}
+            >
+              <Text style={styles.answerLabel}>{SAMPLE.finalLabel}</Text>
+              <Text style={styles.answerValue}>{SAMPLE.finalValue}</Text>
+            </LinearGradient>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -70,10 +95,23 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
     paddingTop: 8,
   },
+  card: {
+    marginTop: 4,
+  },
+  sectionGap: {
+    height: 14,
+  },
   bodyText: {
-    color: Colors.white,
+    color: Colors.textPrimary,
     fontSize: 16,
     lineHeight: 26,
+    fontWeight: "600",
+  },
+  bodyTextMuted: {
+    color: Colors.textSecondary,
+    fontSize: 15,
+    lineHeight: 24,
+    fontWeight: "600",
   },
   answerStrip: {
     marginTop: 20,
@@ -100,8 +138,9 @@ const styles = StyleSheet.create({
   },
   answerValue: {
     color: Colors.white,
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "800",
     marginTop: 8,
+    lineHeight: 26,
   },
 });

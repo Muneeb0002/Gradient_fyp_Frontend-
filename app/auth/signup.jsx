@@ -10,18 +10,18 @@ import {
   ScrollView,
   Text,
   View,
-  ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AppDecor from "../../components/shared/AppDecor";
 import InputField from "../../components/auth/InputField";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import Colors from "../../constants/Colors";
-import { saveProfile } from "../../lib/storage";
-import { useSignup } from "../../src/hooks/useSignup.js";
+import { setPendingSignup } from "../../lib/pendingSignup";
+import { useScrollFieldIntoView } from "../../src/hooks/useScrollFieldIntoView.js";
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const authMessage = params?.authMessage;
 
@@ -33,7 +33,6 @@ export default function SignUpScreen() {
     password: "",
   });
 
-  const { mutate, isPending } = useSignup();
   const [errors, setErrors] = useState({
     firstName: "",
     lastName: "",
@@ -41,10 +40,10 @@ export default function SignUpScreen() {
     password: "",
   });
   const [serverError, setServerError] = useState("");
+  const { scrollRef, fieldWrapRef, onScroll, scrollFieldIntoView } = useScrollFieldIntoView();
 
   const handleSignup = () => {
-  const { firstName, lastName, email, password } = formData;
-
+    const { firstName, lastName, email, password } = formData;
     setServerError("");
 
     const nextErrors = { firstName: "", lastName: "", email: "", password: "" };
@@ -75,21 +74,12 @@ export default function SignUpScreen() {
 
     setErrors({ firstName: "", lastName: "", email: "", password: "" });
 
-  mutate(formData, {
-    onSuccess: async () => {
-      const fullName = `${firstName} ${lastName}`.trim();
-      await saveProfile({ displayName: fullName, email });
-      router.replace({
-        pathname: "/onboarding",
-        params: { authMessage: `${firstName} signup successful` },
-      });
-    },
-    onError: (err) => {
-      const errorMsg = err.response?.data?.message || "Signup failed. Try again!";
-      setServerError(errorMsg);
-    },
-  });
-};
+    setPendingSignup({ ...formData });
+    router.push({
+      pathname: "/auth/signup-otp",
+      params: { email: formData.email },
+    });
+  };
 
   return (
     <LinearGradient
@@ -101,15 +91,23 @@ export default function SignUpScreen() {
       className="flex-1"
     >
       <AppDecor />
-      <SafeAreaView className="flex-1">
+      <SafeAreaView className="flex-1" edges={["top", "left", "right"]}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "padding"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
         >
           <ScrollView
+            ref={scrollRef}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
             contentContainerStyle={{
+              flexGrow: 1,
               paddingHorizontal: 24,
-              paddingBottom: 40,
+              paddingBottom: 160,
             }}
             showsVerticalScrollIndicator={false}
           >
@@ -200,24 +198,26 @@ export default function SignUpScreen() {
                 error={errors.email}
               />
 
-              <InputField
-                label="Password"
-                placeholder="Create a strong password"
-                secureTextEntry
-                passwordToggle
-                value={formData.password}
-                onChangeText={(text) => {
-                  setFormData({ ...formData, password: text });
-                  setErrors((e) => ({ ...e, password: "" }));
-                }}
-                error={errors.password}
-              />
+              <View ref={fieldWrapRef} collapsable={false}>
+                <InputField
+                  label="Password"
+                  placeholder="Create a strong password"
+                  secureTextEntry
+                  passwordToggle
+                  value={formData.password}
+                  onChangeText={(text) => {
+                    setFormData({ ...formData, password: text });
+                    setErrors((e) => ({ ...e, password: "" }));
+                  }}
+                  error={errors.password}
+                  onFocus={scrollFieldIntoView}
+                />
+              </View>
 
               <View className="mt-4">
                 <PrimaryButton
-                  title={isPending ? "Creating Account..." : "Create Account"}
+                  title="Create Account"
                   handlePress={handleSignup}
-                  disabled={isPending}
                 />
               </View>
 
@@ -226,14 +226,6 @@ export default function SignUpScreen() {
                   {serverError}
                 </Text>
               ) : null}
-
-              {isPending && (
-                <ActivityIndicator
-                  color={Colors.accent}
-                  className="mt-4"
-                  size="small"
-                />
-              )}
             </View>
 
             {/* Login Link */}
