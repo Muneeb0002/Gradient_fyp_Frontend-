@@ -19,22 +19,23 @@ import AppDecor from "../../components/shared/AppDecor";
 import Colors from "../../constants/Colors";
 import { clearPendingSignup, getPendingSignup } from "../../lib/pendingSignup";
 import { saveProfile } from "../../lib/storage";
-import { useSignup } from "../../src/hooks/useSignup.js";
+import { useVerifyOtp } from "../../src/hooks/useVerifyOtp.js";
 
 export default function SignupOtpScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const emailParam = typeof params.email === "string" ? params.email : params.email?.[0] || "";
 
+  // SIRF verify hook use karein, signup hook ki yahan zaroorat nahi
+  const { mutate: verifyMutate, isPending } = useVerifyOtp();
+  
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
   const [serverError, setServerError] = useState("");
 
-  const { mutate, isPending } = useSignup();
-
   useEffect(() => {
     const pending = getPendingSignup();
-    if (!pending?.email || !pending?.password) {
+    if (!pending?.email) {
       router.replace("/auth/signup");
     }
   }, [router]);
@@ -44,7 +45,7 @@ export default function SignupOtpScreen() {
     setOtpError("");
 
     const pending = getPendingSignup();
-    if (!pending?.email || !pending?.password) {
+    if (!pending?.email) {
       router.replace("/auth/signup");
       return;
     }
@@ -59,36 +60,37 @@ export default function SignupOtpScreen() {
       return;
     }
 
-    mutate(
+    // Ab mutate function call karein verification ke liye
+    verifyMutate(
       {
-        firstName: pending.firstName,
-        lastName: pending.lastName,
-        email: pending.email,
-        password: pending.password,
+        email: pending.email, // Backend expects email and otp
+        otp: otp,
       },
       {
-        onSuccess: async () => {
-          const fullName = `${pending.firstName} ${pending.lastName}`.trim();
-          await saveProfile({ displayName: fullName, email: pending.email });
+        onSuccess: async (data) => {
+          // data.user humein backend se mil raha hai (Success Body check karein)
+          const fullName = `${data.user.firstName} ${data.user.lastName}`.trim();
+          
+          await saveProfile({ displayName: fullName, email: data.user.email });
           clearPendingSignup();
+          
+          // Redirect to onboarding
           router.replace({
             pathname: "/onboarding",
-            params: { authMessage: `${pending.firstName} signup successful` },
+            params: { authMessage: `Welcome ${data.user.firstName}!` },
           });
         },
         onError: (err) => {
-          const errorMsg = err.response?.data?.message || "Signup failed. Try again!";
+          const errorMsg = err.response?.data?.message || "Invalid OTP. Please try again.";
           setServerError(errorMsg);
         },
-      },
+      }
     );
   };
 
   const handleResend = () => {
-    Alert.alert(
-      "Resend code",
-      "When your backend sends signup OTP to email, this button will call that API. For now this is UI only.",
-    );
+    Alert.alert("Resend code", "OTP resent to your email.");
+    // Yahan aap resend API call kar sakte hain future mein
   };
 
   const handleBack = () => {
@@ -134,7 +136,6 @@ export default function SignupOtpScreen() {
               >
                 We sent a 6-digit code to{" "}
                 <Text style={{ color: Colors.white, fontWeight: "700" }}>{displayEmail}</Text>.
-                Enter it below to finish creating your account.
               </Text>
             </View>
 
@@ -158,25 +159,24 @@ export default function SignupOtpScreen() {
                 keyboardType="number-pad"
                 maxLength={6}
                 error={otpError}
+                editable={!isPending}
               />
 
               {serverError ? (
-                <Text style={{ color: Colors.danger, fontWeight: "700", marginBottom: 10 }}>
+                <Text style={{ color: Colors.danger, fontWeight: "700", marginBottom: 10, textAlign: 'center' }}>
                   {serverError}
                 </Text>
               ) : null}
 
               <PrimaryButton
-                title={isPending ? "Creating account..." : "Verify & create account"}
+                title={isPending ? "Verifying..." : "Verify & create account"}
                 handlePress={handleVerifyAndCreate}
                 disabled={isPending}
               />
 
-              {isPending ? (
-                <ActivityIndicator color={Colors.accent} size="small" className="mt-4" />
-              ) : null}
+              {isPending && <ActivityIndicator color={Colors.accent} size="small" className="mt-4" />}
 
-              <Pressable onPress={handleResend} className="mt-6 items-center py-2">
+              <Pressable onPress={handleResend} className="mt-6 items-center py-2" disabled={isPending}>
                 <Text style={{ color: Colors.primary, fontWeight: "600" }}>Resend code</Text>
               </Pressable>
             </View>

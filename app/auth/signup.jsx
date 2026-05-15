@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react"; 
+import { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -12,18 +13,22 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import AppDecor from "../../components/shared/AppDecor";
 import InputField from "../../components/auth/InputField";
 import PrimaryButton from "../../components/auth/PrimaryButton";
+import AppDecor from "../../components/shared/AppDecor";
 import Colors from "../../constants/Colors";
 import { setPendingSignup } from "../../lib/pendingSignup";
 import { useScrollFieldIntoView } from "../../src/hooks/useScrollFieldIntoView.js";
+import { useSignup } from "../../src/hooks/useSignup.js";
 
 export default function SignUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const authMessage = params?.authMessage;
+
+  // React Query Hook
+  const { mutate, isPending } = useSignup();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -39,6 +44,7 @@ export default function SignUpScreen() {
     email: "",
     password: "",
   });
+  
   const [serverError, setServerError] = useState("");
   const { scrollRef, fieldWrapRef, onScroll, scrollFieldIntoView } = useScrollFieldIntoView();
 
@@ -46,6 +52,7 @@ export default function SignUpScreen() {
     const { firstName, lastName, email, password } = formData;
     setServerError("");
 
+    // --- Validation Logic ---
     const nextErrors = { firstName: "", lastName: "", email: "", password: "" };
     const nameRegex = /^[a-zA-Z\s]+$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -74,10 +81,24 @@ export default function SignUpScreen() {
 
     setErrors({ firstName: "", lastName: "", email: "", password: "" });
 
-    setPendingSignup({ ...formData });
-    router.push({
-      pathname: "/auth/signup-otp",
-      params: { email: formData.email },
+    // --- API Integration ---
+    // We call mutate from useSignup. If successful, it hits the backend.
+    mutate(formData, {
+      onSuccess: (data) => {
+        // 1. Store data locally if needed (for the OTP screen to access)
+        setPendingSignup({ ...formData });
+        
+        // 2. Navigate to OTP screen
+        router.push({
+          pathname: "/auth/signup-otp",
+          params: { email: formData.email },
+        });
+      },
+      onError: (err) => {
+        // Extract error message from Axios response
+        const msg = err.response?.data?.message || "Something went wrong. Please try again.";
+        setServerError(msg);
+      }
     });
   };
 
@@ -94,7 +115,7 @@ export default function SignUpScreen() {
       <SafeAreaView className="flex-1" edges={["top", "left", "right"]}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "padding"}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
         >
           <ScrollView
@@ -103,7 +124,6 @@ export default function SignUpScreen() {
             scrollEventThrottle={16}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
-            automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
             contentContainerStyle={{
               flexGrow: 1,
               paddingHorizontal: 24,
@@ -172,6 +192,7 @@ export default function SignUpScreen() {
                   setErrors((e) => ({ ...e, firstName: "" }));
                 }}
                 error={errors.firstName}
+                editable={!isPending}
               />
 
               <InputField
@@ -183,6 +204,7 @@ export default function SignUpScreen() {
                   setErrors((e) => ({ ...e, lastName: "" }));
                 }}
                 error={errors.lastName}
+                editable={!isPending}
               />
 
               <InputField
@@ -196,6 +218,7 @@ export default function SignUpScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 error={errors.email}
+                editable={!isPending}
               />
 
               <View ref={fieldWrapRef} collapsable={false}>
@@ -211,27 +234,30 @@ export default function SignUpScreen() {
                   }}
                   error={errors.password}
                   onFocus={scrollFieldIntoView}
-                />
-              </View>
-
-              <View className="mt-4">
-                <PrimaryButton
-                  title="Create Account"
-                  handlePress={handleSignup}
+                  editable={!isPending}
                 />
               </View>
 
               {serverError ? (
-                <Text style={{ color: Colors.danger, fontWeight: "700", marginBottom: 10 }}>
+                <Text style={{ color: Colors.danger, fontWeight: "700", marginVertical: 10, textAlign: 'center' }}>
                   {serverError}
                 </Text>
               ) : null}
+
+              <View className="mt-4">
+                <PrimaryButton
+                  title={isPending ? <ActivityIndicator color={Colors.white} /> : "Create Account"}
+                  handlePress={handleSignup}
+                  disabled={isPending}
+                />
+              </View>
             </View>
 
             {/* Login Link */}
             <Pressable 
                 onPress={() => router.push("/auth/login")} 
                 className="mt-6 items-center"
+                disabled={isPending}
             >
               <Text style={{ color: Colors.textSecondary }}>
                 Already have an account?{" "}

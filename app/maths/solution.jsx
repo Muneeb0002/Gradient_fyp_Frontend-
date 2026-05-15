@@ -1,48 +1,64 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { ScrollView, Text, View, Platform, StyleSheet } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react"; // 1. useState add kiya
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"; // TouchableOpacity add kiya
 import { SafeAreaView } from "react-native-safe-area-context";
+import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
-
-/** Static sample solution for UI only — replace with API output later. */
-const SAMPLE = {
-  question: "2x² + 4x + 10 = 0",
-  methodTitle: "Method",
-  methodBody:
-    "Treat as a quadratic in standard form ax² + bx + c = 0, then use the discriminant Δ = b² − 4ac to decide the type of roots before solving.",
-  workingTitle: "Working",
-  workingBody:
-    "Here a = 2, b = 4, c = 10.\n\n"
-    + "Δ = b² − 4ac = 4² − 4(2)(10) = 16 − 80 = −64.\n\n"
-    + "Since Δ < 0, there are no real roots. The solutions exist only in the complex numbers.",
-  examTitle: "How to write this in an exam",
-  examBody:
-    "State the discriminant, show its value is negative, then conclude “no real solutions” (or give complex roots if the question asks for them).",
-  finalLabel: "Final answer",
-  finalValue: "No real values of x satisfy the equation.",
-};
+import { useConcept } from "../../src/hooks/useConceptKey.js";
+import { useMathSolver } from "../../src/hooks/useMathSolver";
 
 export default function SolutionScreen() {
   const router = useRouter();
+  const { query, marks } = useLocalSearchParams();
+  
+  // State jo track karegi ke user ne kis step ke concept par click kiya hai
+  const [selectedKey, setSelectedKey] = useState(null);
+
+  // Math Solver API Hook
+  const { mutate, data, isPending, isError, error: solverError } = useMathSolver();
+  
+  // Concept API Hook (Yeh tabhi chalega jab selectedKey mein value aayegi)
+  // Naming conflict se bachne ke liye error ko 'conceptError' ka naam de diya
+  const { data: concept, isLoading: isConceptLoading, error: conceptError } = useConcept(selectedKey);
+
+  useEffect(() => {
+    if (query && marks) {
+      mutate({ query, marks });
+    }
+  }, [query, marks]);
+
+  // Loading View
+  if (isPending) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={Colors.accent} />
+        <Text style={styles.loadingText}>AI is calculating steps...</Text>
+      </View>
+    );
+  }
+
+  // Error View
+  if (isError) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>Oops! {solverError?.message || "Failed to solve"}</Text>
+        <PrimaryButton title="Try Again" handlePress={() => router.back()} />
+      </View>
+    );
+  }
 
   return (
     <LinearGradient
-      colors={[
-        Colors.backgroundStart,
-        Colors.backgroundMiddle,
-        Colors.backgroundEnd,
-      ]}
+      colors={[Colors.backgroundStart, Colors.backgroundMiddle, Colors.backgroundEnd]}
       className="flex-1"
     >
       <AppDecor />
       <SafeAreaView className="flex-1">
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scroll}
-        >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           <ScreenHeader
             onBack={() => router.back()}
             title="Solution"
@@ -50,39 +66,86 @@ export default function SolutionScreen() {
             icon="lightbulb-on-outline"
           />
 
-          <View style={styles.card}>
-            <SectionCard label="Question" icon="help-circle-outline">
-              <Text style={styles.bodyText}>{SAMPLE.question}</Text>
-            </SectionCard>
+          {data && (
+            <View style={styles.card}>
+              <SectionCard label="Question" icon="help-circle-outline">
+                <Text style={styles.bodyText}>{data.raw_question}</Text>
+              </SectionCard>
 
-            <View style={styles.sectionGap} />
+              <View style={styles.sectionGap} />
 
-            <SectionCard label={SAMPLE.methodTitle} icon="chart-bell-curve">
-              <Text style={styles.bodyTextMuted}>{SAMPLE.methodBody}</Text>
-            </SectionCard>
+              {/* CONCEPT POPUP / DETAILS (Agar koi key selected ho to yahan dikhao) */}
+              {selectedKey && (
+                <View style={styles.conceptModalBox}>
+                  <View style={styles.conceptHeaderRow}>
+                    <Text style={styles.conceptSectionTitle}>Concept Explanation</Text>
+                    <TouchableOpacity onPress={() => setSelectedKey(null)}>
+                      <Text style={{ color: Colors.danger, fontWeight: 'bold' }}>Close X</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {isConceptLoading ? (
+                    <ActivityIndicator size="small" color={Colors.accent} />
+                  ) : conceptError ? (
+                    <Text style={{ color: Colors.danger }}>Error loading concept details.</Text>
+                  ) : concept ? (
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={styles.conceptTitle}>{concept.title}</Text>
+                      <Text style={styles.conceptExplanation}>{concept.explanation}</Text>
+                      {concept.example && (
+                        <Text style={styles.conceptExample}>Example: {concept.example}</Text>
+                      )}
+                    </View>
+                  ) : null}
+                </View>
+              )}
 
-            <View style={styles.sectionGap} />
+              {selectedKey && <View style={styles.sectionGap} />}
 
-            <SectionCard label={SAMPLE.workingTitle} icon="format-list-numbered">
-              <Text style={styles.bodyText}>{SAMPLE.workingBody}</Text>
-            </SectionCard>
+              <SectionCard label="Step-by-Step Working (Click any step to learn concept)" icon="format-list-numbered">
+                {data.steps?.map((step, index) => (
+                  // Har step ko TouchableOpacity bana diya taake click ho sake
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.stepContainer}
+                    onPress={() => {
+                      if (step.concept_key) {
+                        setSelectedKey(step.concept_key); // State update hogi, concept_key pass ho gayi!
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexRow: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={styles.stepHeader}>Step {step.step_number}</Text>
+                      {step.concept_key && (
+                        <Text style={styles.viewConceptTag}>💡 View Concept</Text>
+                      )}
+                    </View>
+                    <Text style={styles.stepDesc}>{step.description}</Text>
+                    <View style={styles.expressionBox}>
+                      <Text style={styles.expressionText}>{step.expression}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </SectionCard>
 
-            <View style={styles.sectionGap} />
+              <View style={styles.sectionGap} />
 
-            <SectionCard label={SAMPLE.examTitle} icon="school-outline">
-              <Text style={styles.bodyTextMuted}>{SAMPLE.examBody}</Text>
-            </SectionCard>
+              <SectionCard label="Teacher's Commentary" icon="school-outline">
+                <Text style={styles.bodyTextMuted}>{data.mark_commentary}</Text>
+              </SectionCard>
 
-            <LinearGradient
-              colors={[Colors.primaryDark, Colors.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.answerStrip}
-            >
-              <Text style={styles.answerLabel}>{SAMPLE.finalLabel}</Text>
-              <Text style={styles.answerValue}>{SAMPLE.finalValue}</Text>
-            </LinearGradient>
-          </View>
+              <LinearGradient
+                colors={[Colors.primaryDark, Colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.answerStrip}
+              >
+                <Text style={styles.answerLabel}>Final Answer</Text>
+                <Text style={styles.answerValue}>{data.final_answer}</Text>
+              </LinearGradient>
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -90,57 +153,29 @@ export default function SolutionScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    paddingHorizontal: 22,
-    paddingBottom: 36,
-    paddingTop: 8,
-  },
-  card: {
-    marginTop: 4,
-  },
-  sectionGap: {
-    height: 14,
-  },
-  bodyText: {
-    color: Colors.textPrimary,
-    fontSize: 16,
-    lineHeight: 26,
-    fontWeight: "600",
-  },
-  bodyTextMuted: {
-    color: Colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 24,
-    fontWeight: "600",
-  },
-  answerStrip: {
-    marginTop: 20,
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: Colors.primaryDark,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
-      },
-      android: { elevation: 6 },
-    }),
-  },
-  answerLabel: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  answerValue: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: "800",
-    marginTop: 8,
-    lineHeight: 26,
-  },
+  scroll: { paddingHorizontal: 22, paddingBottom: 36, paddingTop: 8 },
+  card: { marginTop: 4 },
+  sectionGap: { height: 14 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.backgroundEnd, padding: 20 },
+  loadingText: { color: Colors.white, marginTop: 15, fontWeight: '600' },
+  errorText: { color: Colors.danger, marginBottom: 20, textAlign: 'center', fontWeight: 'bold' },
+  bodyText: { color: Colors.textPrimary, fontSize: 18, fontWeight: "700" },
+  bodyTextMuted: { color: Colors.textSecondary, fontSize: 15, lineHeight: 24, fontWeight: "600" },
+  stepContainer: { marginBottom: 20, borderLeftWidth: 2, borderLeftColor: Colors.accent, paddingLeft: 15 },
+  stepHeader: { color: Colors.accent, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
+  stepDesc: { color: Colors.textSecondary, fontSize: 14, marginBottom: 8 },
+  expressionBox: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 10 },
+  expressionText: { color: Colors.white, fontSize: 17, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
+  answerStrip: { marginTop: 20, borderRadius: 18, padding: 18 },
+  answerLabel: { color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
+  answerValue: { color: Colors.white, fontSize: 20, fontWeight: "800", marginTop: 8 },
+  
+  // Naye Styles Concept Box Ke Liye
+  conceptModalBox: { backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: 16, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  conceptHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)', paddingBottom: 6 },
+  conceptSectionTitle: { color: Colors.accent, fontWeight: '800', fontSize: 14, textTransform: 'uppercase' },
+  conceptTitle: { color: Colors.white, fontSize: 18, fontWeight: 'bold', marginBottom: 6 },
+  conceptExplanation: { color: Colors.textSecondary, fontSize: 14, lineHeight: 20 },
+  conceptExample: { color: Colors.accent, fontSize: 13, fontStyle: 'italic', marginTop: 8 },
+  viewConceptTag: { color: Colors.accent, fontSize: 11, fontWeight: 'bold' }
 });
