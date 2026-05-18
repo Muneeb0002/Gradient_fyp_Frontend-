@@ -10,15 +10,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppDecor from "../../components/shared/AppDecor";
 import SubjectCard from "../../components/shared/SubjectCard";
+import RecentActivityHome from "../../components/activity/RecentActivityHome";
 import Colors from "../../constants/Colors";
 import { getProfile } from "../../lib/storage";
-
-
-const recent = [
-  { icon: "calculator-variant", text: "Solve quadratic equation", color: "#5EEAD4" },
-  { icon: "chart-line", text: "Define inflation (Economics)", color: "#86EFAC" },
-  { icon: "book-open-page-variant", text: "Causes of World War I", color: "#93C5FD" },
-];
 
 export default function HomeTab() {
   const router = useRouter();
@@ -111,16 +105,15 @@ export default function HomeTab() {
           <View style={[styles.sectionHead, { marginTop: 22 }]}>
             <MaterialCommunityIcons name="history" size={20} color={Colors.accent} />
             <Text style={styles.sectionTitle}>Recent activity</Text>
+            <Pressable
+              onPress={() => router.push("/activity")}
+              hitSlop={8}
+              style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.viewAllText}>View all</Text>
+            </Pressable>
           </View>
-          <View style={styles.recentCard}>
-            {recent.map((item, idx) => (
-              <View key={item.text} style={[styles.recentRow, idx === recent.length - 1 && { marginBottom: 0 }]}>
-                <View style={[styles.dot, { backgroundColor: item.color }]} />
-                <MaterialCommunityIcons name={item.icon} size={20} color={Colors.textMuted} style={{ marginLeft: 12 }} />
-                <Text style={styles.recentText}>{item.text}</Text>
-              </View>
-            ))}
-          </View>
+          <RecentActivityHome />
 
           {/* Replay Intro Tour */}
           <Pressable
@@ -167,8 +160,20 @@ const styles = StyleSheet.create({
   statNum: { color: Colors.white, fontSize: 32, fontWeight: "800", marginTop: 4 },
   statBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: Colors.surfaceAlt, borderWidth: 1, borderColor: Colors.cardBorder, marginLeft: 10 },
   statBadgeTxt: { color: Colors.textMuted, fontSize: 11, fontWeight: "700" },
-  sectionHead: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  sectionTitle: { marginLeft: 8, color: Colors.accent, fontSize: 17, fontWeight: "800" },
+  sectionHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    marginLeft: 8,
+    flex: 1,
+    color: Colors.accent,
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  viewAllBtn: { paddingVertical: 4, paddingHorizontal: 8 },
+  viewAllText: { color: Colors.textMuted, fontSize: 13, fontWeight: "700" },
   subjectGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
   recentCard: { borderRadius: 20, padding: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.cardBorder },
   recentRow: { flexDirection: "row", alignItems: "center", marginBottom: 14 },

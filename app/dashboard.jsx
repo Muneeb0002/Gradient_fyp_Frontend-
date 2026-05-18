@@ -21,12 +21,7 @@ import Colors from "../constants/Colors";
 import { getProfile } from "../lib/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQueryClient } from "@tanstack/react-query";
-
-const recent = [
-  { icon: "calculator-variant", text: "Solve quadratic equation", color: "#5EEAD4" },
-  { icon: "chart-line", text: "Define inflation (Economics)", color: "#86EFAC" },
-  { icon: "book-open-page-variant", text: "Causes of World War I", color: "#93C5FD" },
-];
+import RecentActivityHome from "../components/activity/RecentActivityHome";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -228,31 +223,19 @@ export default function Dashboard() {
               size={20}
               color={Colors.accent}
             />
-            <Text style={styles.sectionTitle}>Recent activity</Text>
+            <Text style={[styles.sectionTitle, { flex: 1 }]}>
+              Recent activity
+            </Text>
+            <Pressable
+              onPress={() => router.push("/activity")}
+              hitSlop={8}
+              style={({ pressed }) => pressed && { opacity: 0.85 }}
+            >
+              <Text style={styles.viewAllText}>View all</Text>
+            </Pressable>
           </View>
 
-          <View style={styles.recentCard}>
-            {recent.map((item, idx) => (
-              <View
-                key={item.text}
-                style={[
-                  styles.recentRow,
-                  idx === recent.length - 1 && { marginBottom: 0 },
-                ]}
-              >
-                <View
-                  style={[styles.recentDot, { backgroundColor: item.color }]}
-                />
-                <MaterialCommunityIcons
-                  name={item.icon}
-                  size={20}
-                  color={Colors.textMuted}
-                  style={{ marginLeft: 12 }}
-                />
-                <Text style={styles.recentText}>{item.text}</Text>
-              </View>
-            ))}
-          </View>
+          <RecentActivityHome />
 
           <Pressable
             onPress={() => router.push("/onboarding")}
@@ -467,6 +450,11 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontSize: 17,
     fontWeight: "800",
+  },
+  viewAllText: {
+    color: Colors.textMuted,
+    fontSize: 13,
+    fontWeight: "700",
   },
   recentCard: {
     borderRadius: 20,
