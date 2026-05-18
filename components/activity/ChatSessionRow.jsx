@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Colors from "../../constants/Colors";
+import { sanitizeDisplayText } from "../../lib/displayText";
 import { getModeMeta } from "../../lib/chatHistoryUtils";
 
 export default function ChatSessionRow({ session, accentColor, onPress }) {
@@ -19,7 +20,7 @@ export default function ChatSessionRow({ session, accentColor, onPress }) {
       <View style={styles.body}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>
-            {session.title}
+            {sanitizeDisplayText(session.title)}
           </Text>
           {session.marks != null ? (
             <View style={[styles.marksPill, { backgroundColor: color + "22" }]}>
@@ -28,7 +29,7 @@ export default function ChatSessionRow({ session, accentColor, onPress }) {
           ) : null}
         </View>
         <Text style={styles.preview} numberOfLines={2}>
-          {session.preview}
+          {sanitizeDisplayText(session.preview)}
         </Text>
         <View style={styles.metaRow}>
           <MaterialCommunityIcons

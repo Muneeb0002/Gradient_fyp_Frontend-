@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { CommonActions } from "@react-navigation/native";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useState } from "react";
 import { useScrollFieldIntoView } from "../../src/hooks/useScrollFieldIntoView.js";
 import {
@@ -17,12 +18,15 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import InputField from "../../components/auth/InputField";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
+import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
+import { getApiErrorMessage } from "../../lib/apiErrors";
 import { getProfile, saveProfile } from "../../lib/storage";
 import { useLogin } from "../../src/hooks/useLogin.js";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const authMessage = params?.authMessage;
@@ -34,12 +38,14 @@ export default function LoginScreen() {
   const { mutate, isPending } = useLogin();
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [serverError, setServerError] = useState("");
+  const [errorModal, setErrorModal] = useState(null);
   const { scrollRef, fieldWrapRef, onScroll, scrollFieldIntoView } = useScrollFieldIntoView();
 
   const handleLogin = () => {
     const { email, password } = formData;
 
     setServerError("");
+    setErrorModal(null);
 
     const nextErrors = { email: "", password: "" };
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -81,14 +87,27 @@ export default function LoginScreen() {
           email: apiEmail || profile?.email || "",
           photoUri: profile?.photoUri || "",
         });
-        router.replace({
-          pathname: "/(tabs)",
-          params: { authMessage: `${firstNameToShow} login successful` },
-        });
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: "(tabs)",
+                params: {
+                  authMessage: `${firstNameToShow} login successful`,
+                },
+              },
+            ],
+          }),
+        );
       },
       onError: (err) => {
-        const errorMsg = err.response?.data?.message || "Login failed. Try again!";
+        const errorMsg = getApiErrorMessage(err, "Login failed. Please try again.");
         setServerError(errorMsg);
+        setErrorModal({
+          title: "Login failed",
+          message: errorMsg,
+        });
       },
     });
   };
@@ -103,6 +122,13 @@ export default function LoginScreen() {
       className="flex-1"
     >
       <AppDecor />
+      <ThemedMessageModal
+        visible={!!errorModal}
+        title={errorModal?.title ?? "Login failed"}
+        message={errorModal?.message ?? ""}
+        onClose={() => setErrorModal(null)}
+        confirmLabel="OK"
+      />
       <SafeAreaView className="flex-1" edges={["top", "left", "right"]}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -210,9 +236,20 @@ export default function LoginScreen() {
               </Pressable>
 
               {serverError ? (
-                <Text style={{ color: Colors.danger, fontWeight: "700", marginBottom: 10 }}>
-                  {serverError}
-                </Text>
+                <View
+                  style={{
+                    marginBottom: 12,
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor: Colors.dangerSoft,
+                    borderWidth: 1,
+                    borderColor: "rgba(251, 113, 133, 0.35)",
+                  }}
+                >
+                  <Text style={{ color: Colors.danger, fontWeight: "700", lineHeight: 20 }}>
+                    {serverError}
+                  </Text>
+                </View>
               ) : null}
 
               <PrimaryButton

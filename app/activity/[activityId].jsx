@@ -11,6 +11,7 @@ import {
 } from "../../components/activity/ActivityStateViews";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import Colors from "../../constants/Colors";
+import { sanitizeDisplayText } from "../../lib/displayText";
 import {
   chatToSessionRow,
   decodeTopicKey,
@@ -75,7 +76,7 @@ export default function ActivitySessionsScreen() {
             style={styles.topicCard}
           >
             <Text style={styles.topicLabel}>Question</Text>
-            <Text style={styles.topicText}>{topicQuery}</Text>
+            <Text style={styles.topicText}>{sanitizeDisplayText(topicQuery)}</Text>
           </LinearGradient>
 
           <Text style={styles.sectionLabel}>All sessions</Text>

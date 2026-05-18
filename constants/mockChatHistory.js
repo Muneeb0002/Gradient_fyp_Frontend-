@@ -42,7 +42,7 @@ export const MOCK_CHAT_HISTORY = {
       username: "student@gradient.app",
       query: "Define inflation. [2 marks]",
       answer:
-        "**Definition:** Inflation is a sustained rise in the general price level of goods and services in an economy over time.\n\n**Types:** Demand-pull (AD > AS) and cost-push (rising production costs).",
+        "**Definition:** Inflation is a sustained rise in the general price level of goods and services in an economy over time.\n\n**Types:** Demand-pull (AD exceeds AS) and cost-push (rising production costs).",
       marks: 2,
       mode: "chat",
       createdAt: "2026-05-15T09:00:00.000Z",

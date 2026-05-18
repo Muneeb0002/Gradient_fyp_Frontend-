@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import HistoryAnswerCard from "../history/HistoryAnswerCard";
 import SectionCard from "../shared/SectionCard";
 import Colors from "../../constants/Colors";
+import { sanitizeDisplayText } from "../../lib/displayText";
 import {
   formatChatDate,
   getModeMeta,
@@ -50,7 +51,9 @@ export default function ChatDetailContent({ chat }) {
       <View style={styles.bubbleSection}>
         <Text style={styles.bubbleLabel}>Your question</Text>
         <View style={styles.questionBubble}>
-          <Text style={styles.questionText}>{chat.query}</Text>
+          <Text style={styles.questionText}>
+            {sanitizeDisplayText(chat.query)}
+          </Text>
         </View>
       </View>
 

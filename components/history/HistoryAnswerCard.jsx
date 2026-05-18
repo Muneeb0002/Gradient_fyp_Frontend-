@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import Colors from "../../constants/Colors";
+import { sanitizeDisplayText } from "../../lib/displayText";
 
 export default function HistoryAnswerCard({ marks, mode = "theory", answer }) {
   const isImageMode = mode === "image";
@@ -27,7 +28,9 @@ export default function HistoryAnswerCard({ marks, mode = "theory", answer }) {
           
           if (headingMatch) {
             // Clean the heading text by removing bold markers and trimming whitespace
-            const cleanHeading = headingMatch[2].replace(/\*\*/g, "").trim();
+            const cleanHeading = sanitizeDisplayText(
+              headingMatch[2].replace(/\*\*/g, "").trim(),
+            );
             if (cleanHeading) {
               return (
                 <Text 
@@ -49,7 +52,7 @@ export default function HistoryAnswerCard({ marks, mode = "theory", answer }) {
           if (line.trim() === "") return <View key={index} style={{ height: 8 }} />;
           
           // Render plain text while stripping bold markers (**) for a cleaner theme look
-          const cleanLine = line.replace(/\*\*/g, "").trim();
+          const cleanLine = sanitizeDisplayText(line.replace(/\*\*/g, "").trim());
           if (!cleanLine) return null;
 
           return (

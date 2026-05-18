@@ -13,8 +13,8 @@ export const useLogin = () => {
       }
       console.log("Login Successful");
     },
-    onError: (error) => {
-      console.error("Login Error:", error.response?.data?.message || error.message);
+    onError: () => {
+      /* Handled in screen — avoid Expo red error overlay */
     },
   });
 };

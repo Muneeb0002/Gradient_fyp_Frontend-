@@ -14,7 +14,7 @@ export default function ScreenHeader({ onBack, title, subtitle, icon }) {
         hitSlop={8}
       >
         <MaterialCommunityIcons
-          name="chevron-left"
+          name="arrow-left"
           size={22}
           color={Colors.white}
         />

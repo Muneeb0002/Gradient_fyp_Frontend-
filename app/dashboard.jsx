@@ -22,6 +22,8 @@ import { getProfile } from "../lib/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQueryClient } from "@tanstack/react-query";
 import RecentActivityHome from "../components/activity/RecentActivityHome";
+import ThemedConfirmModal from "../components/shared/ThemedConfirmModal";
+import useExitOnBack from "../src/hooks/useExitOnBack";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -33,6 +35,7 @@ export default function Dashboard() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showBanner, setShowBanner] = useState(Boolean(authMessage));
+  const { exitVisible, setExitVisible, confirmExit } = useExitOnBack(true);
 
   useFocusEffect(
     useCallback(() => {
@@ -76,6 +79,15 @@ export default function Dashboard() {
       className="flex-1"
     >
       <AppDecor />
+      <ThemedConfirmModal
+        visible={exitVisible}
+        title="Exit app?"
+        message="Do you want to leave GRADIANT? You will stay signed in until you tap Logout."
+        cancelLabel="Stay"
+        confirmLabel="Exit"
+        onCancel={() => setExitVisible(false)}
+        onConfirm={confirmExit}
+      />
       <SafeAreaView className="flex-1">
         <ScrollView
           showsVerticalScrollIndicator={false}

@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Colors from "../../constants/Colors";
+import { sanitizeDisplayText } from "../../lib/displayText";
 import { getModeMeta } from "../../lib/chatHistoryUtils";
 
 export default function ActivityListRow({ item, onPress, showChevron = true }) {
@@ -50,11 +51,11 @@ export default function ActivityListRow({ item, onPress, showChevron = true }) {
             ) : null}
           </View>
           <Text style={styles.title} numberOfLines={2}>
-            {item.title}
+            {sanitizeDisplayText(item.title)}
           </Text>
           {item.preview ? (
             <Text style={styles.preview} numberOfLines={2}>
-              {item.preview}
+              {sanitizeDisplayText(item.preview)}
             </Text>
           ) : null}
           <View style={styles.metaRow}>

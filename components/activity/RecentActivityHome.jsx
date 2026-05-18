@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import Colors from "../../constants/Colors";
+import { sanitizeDisplayText } from "../../lib/displayText";
 import useChatHistory from "../../src/hooks/useChatHistory";
 import {
   getModeMeta,
@@ -69,7 +70,7 @@ export default function RecentActivityHome() {
             />
             <View style={styles.textCol}>
               <Text style={styles.recentText} numberOfLines={1}>
-                {item.title}
+                {sanitizeDisplayText(item.title)}
               </Text>
               <Text style={styles.sub} numberOfLines={1}>
                 {item.lastActive}
