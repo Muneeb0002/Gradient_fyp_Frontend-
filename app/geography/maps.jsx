@@ -97,6 +97,19 @@ export default function GeographyMapsScreen() {
 
   const formatCoord = (coord) => ({ latitude: coord[0], longitude: coord[1] });
 
+  const extractAiAnswer = (response) => {
+    if (!response) return null;
+    if (typeof response === "string") return response;
+    return (
+      response.answer ??
+      response.explanation ??
+      response.response ??
+      response.data?.answer ??
+      response.data?.explanation ??
+      null
+    );
+  };
+
   const formattedRivers = [
     ...(apiResponse?.points?.map((point) => ({
       label: point.label,
@@ -112,6 +125,11 @@ export default function GeographyMapsScreen() {
       color: path.color || Colors.accent,
       coords: path.data.map((coord) => formatCoord(coord)),
       renderType: "polyline",
+      facts:
+        path.facts ||
+        path.description ||
+        path.data?.[0]?.description ||
+        "",
     })) || []),
 
     ...(apiResponse?.regions?.map((region) => ({
@@ -127,25 +145,22 @@ export default function GeographyMapsScreen() {
 
   const handleFeaturePress = async (feature) => {
     setSelectedFeature(feature);
-    setFeatureDetails(null);
+    setFeatureDetails(feature.facts?.trim() || null);
     setIsFetchingDetails(true);
 
     try {
-      // Create a specific prompt for the clicked feature
-      const prompt = `Provide a detailed O-Level Geography examiner-style breakdown (Syllabus 2217) for "${feature.label}" in Pakistan. 
-      Structure the response exactly as:
-      ### [1] Curriculum Context: 
-      [Detailed overview]
-      ### [2] Regional/Physical Analysis: 
-      [Distribution and physical factors]
-      ### [3] Significance: 
-      [Importance to Pakistan]
-      ### [4] Tutor Wisdom: 
-      [Exam tip]`;
+      const prompt = `You are a Cambridge O Level Geography (2217) tutor. The student selected "${feature.label}" on a map of Pakistan. Write a focused, syllabus-aligned breakdown for this specific feature only (not a generic rivers overview). Do not say it is outside the syllabus unless it truly is not in 2217.
+
+Structure exactly as:
+### [1] Curriculum Context:
+### [2] Regional/Physical Analysis:
+### [3] Significance:
+### [4] Tutor Wisdom:`;
 
       const response = await askAIFunction({ query: prompt, marks: 4 });
-      if (response && response.answer) {
-        setFeatureDetails(response.answer);
+      const answer = extractAiAnswer(response);
+      if (answer) {
+        setFeatureDetails(answer);
       }
     } catch (error) {
       console.error("Failed to fetch feature specific detail:", error);
@@ -223,7 +238,10 @@ export default function GeographyMapsScreen() {
                   />
                 </View>
 
-                <GeoAnswerCard queryType={getQueryType()} />
+                <GeoAnswerCard
+                  queryType={getQueryType()}
+                  answer={apiResponse?.explanation}
+                />
               </View>
             ) : (
               <View style={styles.noDataCard}>
@@ -291,8 +309,8 @@ export default function GeographyMapsScreen() {
                     <ActivityIndicator size="small" color={Colors.accent} />
                     <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 8 }}>AI analyzing {selectedFeature?.label} specifically...</Text>
                   </View>
-                ) : (
-                  (featureDetails || apiResponse?.explanation) ? (featureDetails || apiResponse.explanation).split('###').map((part, index) => {
+                ) : featureDetails ? (
+                  featureDetails.split('###').map((part, index) => {
                     if (!part.trim()) return null;
                     
                     // Agar part heading se start ho raha hai (e.g. [1] Title)
@@ -313,9 +331,11 @@ export default function GeographyMapsScreen() {
                         {part.trim()}
                       </Text>
                     );
-                  }) : (
-                    <Text style={styles.modalDescription}>Analyzing geographical significance...</Text>
-                  )
+                  })
+                ) : (
+                  <Text style={styles.modalDescription}>
+                    Could not load a detailed answer for {selectedFeature?.label}. Check your connection and try again, or use the overview below the map.
+                  </Text>
                 )}
 
                 <View style={[styles.statusBadge, { backgroundColor: selectedFeature?.color + '22', borderColor: selectedFeature?.color }]}>
