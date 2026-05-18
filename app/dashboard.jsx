@@ -236,7 +236,7 @@ export default function Dashboard() {
               color={Colors.accent}
             />
             <Text style={[styles.sectionTitle, { flex: 1 }]}>
-              Recent activity
+              Chats
             </Text>
             <Pressable
               onPress={() => router.push("/activity")}

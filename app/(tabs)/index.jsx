@@ -116,7 +116,7 @@ export default function HomeTab() {
           {/* Recent Activity */}
           <View style={[styles.sectionHead, { marginTop: 22 }]}>
             <MaterialCommunityIcons name="history" size={20} color={Colors.accent} />
-            <Text style={styles.sectionTitle}>Recent activity</Text>
+            <Text style={styles.sectionTitle}>Chats</Text>
             <Pressable
               onPress={() => router.push("/activity")}
               hitSlop={8}

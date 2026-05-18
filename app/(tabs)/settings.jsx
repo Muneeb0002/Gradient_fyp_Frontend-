@@ -222,7 +222,7 @@ export default function SettingsScreen() {
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>App</Text>
-                <Text style={styles.infoValue}>Gradient FYP</Text>
+                <Text style={styles.infoValue}>GRADIANT</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Version</Text>

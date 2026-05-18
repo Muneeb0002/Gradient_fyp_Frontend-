@@ -8,18 +8,17 @@ import {
   TextInput,
   View,
 } from "react-native";
-import ActivityListRow from "../../components/activity/ActivityListRow";
 import ActivityScreenShell from "../../components/activity/ActivityScreenShell";
-import ActivityStatsBar from "../../components/activity/ActivityStatsBar";
+import ChatGptHeader from "../../components/activity/ChatGptHeader";
+import ChatSidebarRow from "../../components/activity/ChatSidebarRow";
 import {
   ActivityEmpty,
   ActivityError,
   ActivityLoading,
 } from "../../components/activity/ActivityStateViews";
-import ScreenHeader from "../../components/shared/ScreenHeader";
 import Colors from "../../constants/Colors";
 import {
-  groupChatsByTopic,
+  chatToSidebarItem,
   normalizeChats,
 } from "../../lib/chatHistoryUtils";
 import useChatHistory from "../../src/hooks/useChatHistory";
@@ -31,17 +30,17 @@ export default function RecentActivityScreen() {
     useChatHistory();
 
   const chats = useMemo(() => normalizeChats(data), [data]);
-  const topics = useMemo(() => groupChatsByTopic(chats), [chats]);
+  const items = useMemo(() => chats.map(chatToSidebarItem), [chats]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return topics;
-    return topics.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        (t.preview || "").toLowerCase().includes(q),
+    if (!q) return items;
+    return items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.preview.toLowerCase().includes(q),
     );
-  }, [topics, search]);
+  }, [items, search]);
 
   return (
     <ActivityScreenShell
@@ -53,15 +52,18 @@ export default function RecentActivityScreen() {
         />
       }
     >
-      <ScreenHeader
+      <ChatGptHeader
         onBack={() => router.back()}
-        title="Recent chats"
-        subtitle="Your study sessions grouped by question."
-        icon="history"
+        title="Chats"
+        subtitle={
+          chats.length > 0
+            ? `${chats.length} conversation${chats.length === 1 ? "" : "s"}`
+            : undefined
+        }
       />
 
       {isLoading ? (
-        <ActivityLoading />
+        <ActivityLoading message="Loading chats…" />
       ) : isError ? (
         <ActivityError
           message={error?.message || "Please check your connection."}
@@ -69,18 +71,16 @@ export default function RecentActivityScreen() {
         />
       ) : (
         <>
-          <ActivityStatsBar count={data?.count ?? chats.length} topics={topics.length} />
-
           <View style={styles.searchWrap}>
             <MaterialCommunityIcons
               name="magnify"
-              size={20}
+              size={18}
               color={Colors.textMuted}
             />
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Search questions…"
+              placeholder="Search chats"
               placeholderTextColor={Colors.textMuted}
               style={styles.searchInput}
             />
@@ -89,23 +89,24 @@ export default function RecentActivityScreen() {
           {filtered.length === 0 ? (
             <ActivityEmpty
               icon="message-text-outline"
-              title={search ? "No matches" : "No chats yet"}
+              title={search ? "No chats found" : "No chats yet"}
               subtitle={
                 search
-                  ? "Try a different search term."
-                  : "Ask a question in any subject to build your history."
+                  ? "Try another keyword."
+                  : "Your questions and AI answers will appear here."
               }
             />
           ) : (
             <View style={styles.list}>
-              {filtered.map((item) => (
-                <ActivityListRow
+              {filtered.map((item, idx) => (
+                <ChatSidebarRow
                   key={item.id}
                   item={item}
+                  isLast={idx === filtered.length - 1}
                   onPress={() =>
                     router.push({
-                      pathname: "/activity/[activityId]",
-                      params: { activityId: item.id },
+                      pathname: "/activity/chat/[chatId]",
+                      params: { chatId: item.id },
                     })
                   }
                 />
@@ -122,20 +123,21 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    gap: 8,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    gap: 10,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   searchInput: {
     flex: 1,
     color: Colors.white,
     fontSize: 15,
-    paddingVertical: 14,
-    fontWeight: "500",
+    paddingVertical: 11,
   },
-  list: { gap: 0 },
+  list: {
+    marginTop: 4,
+  },
 });

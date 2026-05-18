@@ -5,6 +5,8 @@ export default function QuestionInput({
   hideLabel = false,
   value,
   onChangeText,
+  placeholder = "Type your question...",
+  helperText,
 }) {
   const controlled = value !== undefined && onChangeText !== undefined;
   return (
@@ -13,8 +15,21 @@ export default function QuestionInput({
         <Text style={{ color: Colors.textSecondary }}>Enter your question</Text>
       ) : null}
 
+      {helperText ? (
+        <Text
+          style={{
+            color: Colors.textMuted,
+            fontSize: 12,
+            lineHeight: 17,
+            marginBottom: 8,
+          }}
+        >
+          {helperText}
+        </Text>
+      ) : null}
+
       <TextInput
-        placeholder="Type your question..."
+        placeholder={placeholder}
         placeholderTextColor={Colors.textMuted}
         multiline
         className={hideLabel ? "p-4 rounded-2xl" : "mt-2 p-4 rounded-2xl"}

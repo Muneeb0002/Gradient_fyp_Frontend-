@@ -15,6 +15,7 @@ import AppDecor from "../../components/shared/AppDecor";
 import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
+import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
 
 const MARK_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -24,6 +25,7 @@ export default function MathsNumericalScreen() {
   const [query, setQuery] = useState("");
   const [marks, setMarks] = useState(null);
   const [marksError, setMarksError] = useState(false);
+  const [dialog, setDialog] = useState(null);
 
   const handleSelectMark = (m) => {
     setMarks(m);
@@ -31,12 +33,27 @@ export default function MathsNumericalScreen() {
   };
 
   const handleSolve = () => {
-    if (!marks || !query.trim()) {
+    if (!query.trim()) {
       setMarksError(true);
+      setDialog({
+        title: "Question required",
+        message: "Please enter your maths question before solving.",
+      });
       return;
     }
-    
-    // Solution screen par bhej rahe hain params ke saath
+
+    if (!marks) {
+      setMarksError(true);
+      setDialog({
+        title: "Select marks",
+        message: "Please select marks from 1 to 9 for your answer.",
+      });
+      return;
+    }
+
+    setMarksError(false);
+    setDialog(null);
+
     router.push({
       pathname: "/maths/solution",
       params: { 
@@ -52,30 +69,41 @@ export default function MathsNumericalScreen() {
       className="flex-1"
     >
       <AppDecor />
+      <ThemedMessageModal
+        visible={!!dialog}
+        title={dialog?.title ?? ""}
+        message={dialog?.message ?? ""}
+        onClose={() => setDialog(null)}
+      />
       <SafeAreaView className="flex-1">
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
         >
           <ScreenHeader
+            compact
             onBack={() => router.back()}
             title="Numerical question"
-            subtitle="Type your O Level maths question — numbers, equations, or word problems."
+            subtitle="Enter numbers, equations, or a word problem."
             icon="numeric"
           />
 
           <View style={styles.card}>
             <SectionCard label="Your question" icon="pencil-outline">
-              <QuestionInput 
-                hideLabel 
+              <QuestionInput
+                hideLabel
                 value={query}
-                onChangeText={setQuery}
-                placeholder="e.g. 2x^2 + 4x + 10 = 0"
+                onChangeText={(text) => {
+                  setQuery(text);
+                  if (text.trim()) setMarksError(false);
+                }}
+                placeholder="e.g. 2x² + 4x + 10 = 0"
+                helperText="Write the full question in one line if you can."
               />
-              {marksError && !marks ? (
+              {marksError && !query.trim() ? (
                 <View style={styles.errorBox}>
                   <Text style={styles.errorText}>
-                    Please select marks and type a question.
+                    Please enter your question.
                   </Text>
                 </View>
               ) : null}
@@ -105,6 +133,12 @@ export default function MathsNumericalScreen() {
               ))}
             </View>
 
+            {marksError && query.trim() && !marks ? (
+              <View style={[styles.errorBox, { marginTop: 10 }]}>
+                <Text style={styles.errorText}>Please select marks (1 to 9).</Text>
+              </View>
+            ) : null}
+
             <View style={{ height: 10 }} />
 
             <PrimaryButton title="Solve question" handlePress={handleSolve} />
@@ -131,7 +165,14 @@ const styles = StyleSheet.create({
   },
   errorBox: { marginTop: 10, padding: 10, borderRadius: 14, backgroundColor: 'rgba(255,0,0,0.1)', borderWidth: 1, borderColor: Colors.danger },
   errorText: { color: Colors.danger, fontSize: 13, fontWeight: "700" },
-  marksLabel: { color: Colors.textSecondary, fontSize: 13, fontWeight: "700", marginTop: 14, marginBottom: 10 },
+  marksLabel: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 16,
+    marginBottom: 10,
+    letterSpacing: 0.3,
+  },
   marksRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 8 },
   markChip: { width: "30%", marginBottom: 10, paddingVertical: 12, borderRadius: 14, alignItems: "center", backgroundColor: Colors.surfaceAlt, borderWidth: 1, borderColor: Colors.cardBorder },
   markChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primaryDark },

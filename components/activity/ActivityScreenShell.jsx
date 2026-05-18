@@ -15,11 +15,12 @@ export default function ActivityScreenShell({
       showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.scroll, contentStyle]}
       refreshControl={refreshControl}
+      keyboardShouldPersistTaps="handled"
     >
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.scroll, contentStyle]}>{children}</View>
+    <View style={[styles.scroll, styles.flex, contentStyle]}>{children}</View>
   );
 
   return (
@@ -40,5 +41,6 @@ export default function ActivityScreenShell({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
+  flex: { flex: 1 },
   scroll: { paddingHorizontal: 22, paddingBottom: 36, paddingTop: 8 },
 });
