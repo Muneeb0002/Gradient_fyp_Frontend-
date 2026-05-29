@@ -4,30 +4,36 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import {
-  Alert,
+  Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
-  Platform,
-  StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import AppDecor from "../../components/shared/AppDecor";
 import PrimaryButton from "../../components/auth/PrimaryButton";
+import AppDecor from "../../components/shared/AppDecor";
+import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
+import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
 
 export default function MathsImageQuestionScreen() {
   const router = useRouter();
   const [uri, setUri] = useState(null);
+  const [note, setNote] = useState("");
+  const [dialog, setDialog] = useState(null);
 
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow photo library access to attach a question image.");
+      setDialog({
+        title: "Permission needed",
+        message: "Allow photo library access to attach a question image.",
+      });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -37,6 +43,24 @@ export default function MathsImageQuestionScreen() {
     if (!result.canceled && result.assets?.[0]?.uri) {
       setUri(result.assets[0].uri);
     }
+  };
+
+  const handleSolve = () => {
+    if (!uri) {
+      setDialog({
+        title: "Image required",
+        message: "Please upload a photo of your maths question first.",
+      });
+      return;
+    }
+
+    router.push({
+      pathname: "/maths/solution-image",
+      params: {
+        sourceImageUri: encodeURIComponent(uri),
+        ...(note.trim() ? { note: note.trim() } : {}),
+      },
+    });
   };
 
   return (
@@ -49,6 +73,12 @@ export default function MathsImageQuestionScreen() {
       className="flex-1"
     >
       <AppDecor />
+      <ThemedMessageModal
+        visible={!!dialog}
+        title={dialog?.title ?? ""}
+        message={dialog?.message ?? ""}
+        onClose={() => setDialog(null)}
+      />
       <SafeAreaView className="flex-1">
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -57,14 +87,18 @@ export default function MathsImageQuestionScreen() {
           <ScreenHeader
             onBack={() => router.back()}
             title="Image question"
-            subtitle="Upload a photo of the question from your textbook or past paper."
+            subtitle="Upload a photo — marks are read from the question automatically."
             icon="image-outline"
           />
 
           <View style={styles.card}>
             <SectionCard label="Question image" icon="camera-outline">
               {uri ? (
-                <Image source={{ uri }} style={styles.preview} contentFit="contain" />
+                <Image
+                  source={{ uri }}
+                  style={styles.preview}
+                  contentFit="contain"
+                />
               ) : (
                 <Pressable onPress={pickImage} style={styles.placeholder}>
                   <MaterialCommunityIcons
@@ -72,7 +106,9 @@ export default function MathsImageQuestionScreen() {
                     size={44}
                     color={Colors.textMuted}
                   />
-                  <Text style={styles.placeholderText}>Tap to choose an image</Text>
+                  <Text style={styles.placeholderText}>
+                    Tap to choose an image
+                  </Text>
                 </Pressable>
               )}
 
@@ -83,7 +119,19 @@ export default function MathsImageQuestionScreen() {
               ) : null}
             </SectionCard>
 
-            <View style={{ height: 12 }} />
+            <View style={{ height: 14 }} />
+
+            <SectionCard label="Note (optional)" icon="note-text-outline">
+              <QuestionInput
+                hideLabel
+                value={note}
+                onChangeText={setNote}
+                placeholder="e.g. Solve part (a) only"
+                helperText="Add a short note if part of the question is unclear."
+              />
+            </SectionCard>
+
+            <View style={{ height: 10 }} />
 
             <PrimaryButton
               title={uri ? "Solve from image" : "Pick image first"}
@@ -92,7 +140,7 @@ export default function MathsImageQuestionScreen() {
                   pickImage();
                   return;
                 }
-                router.push("/maths/solution");
+                handleSolve();
               }}
             />
           </View>
