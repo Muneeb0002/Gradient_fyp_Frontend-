@@ -1,11 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { MOCK_CHAT_HISTORY } from "../../constants/mockChatHistory";
+import { getChatHistory } from '../chatHistory.api.js/getChatHistory.api.js';
 
-/** Local mock only — swap queryFn with real fetch when backend is ready */
-export default function useChatHistory() {
+
+const useChatHistory = () => {
   return useQuery({
-    queryKey: ["chatHistory"],
-    queryFn: async () => MOCK_CHAT_HISTORY,
-    staleTime: Infinity,
+    queryKey: ["chat-search-history"],
+    queryFn: getChatHistory,
+    staleTime: 30 * 1000, 
+    
+    refetchInterval: 30 * 1000, 
+    
+    refetchOnWindowFocus: false,
   });
-}
+};
+
+export default useChatHistory;
+
+

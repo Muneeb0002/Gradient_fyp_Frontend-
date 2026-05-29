@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchMapData } from '../map.api.js/mapService.js';
+import { fetchMapData } from '../geographyApi/geographyMapService.js';
 
 const useMapQuery = (searchQuery) => {
     return useQuery({

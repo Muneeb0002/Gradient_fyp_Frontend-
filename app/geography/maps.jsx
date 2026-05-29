@@ -5,12 +5,11 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GeoAnswerCard from "../../components/geography/GeoAnswerCard";
@@ -20,25 +19,20 @@ import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
-import useMapQuery from "../../src/hooks/useMapQuery.js";
-import { askAIFunction } from "../../src/history.api.js/askAIFunction";
+import useMapQuery from "../../src/hooks/useGeographyMapQuery.js";
 
 export default function GeographyMapsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
-  const [featureDetails, setFeatureDetails] = useState(null);
-  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
-  
+
   const {
     data: apiResponse,
     isLoading,
     isError,
     error,
   } = useMapQuery(searchQuery);
-
-  console.log("SEARCH QUERY:", searchQuery);
 
   useEffect(() => {
     if (apiResponse) {
@@ -49,35 +43,12 @@ export default function GeographyMapsScreen() {
   }, [apiResponse]);
 
   const VALID_QUERIES = [
-    "Province",
-    "Crops",
-    "Livestock",
-    "Fruits",
-    "Forests",
-    "Energy",
-    "Mineral",
-    "Rivers",
-    "Barrages",
-    "Ports",
-    "Infrastructure",
-    "Landforms",
-    "Rain systems",
-    "Airports",
-    "Dryports",
-    "Sea ports",
-    "Dams",
-    "Major Industries",
-    "Energy pipelines",
-    "Population",
-    "Mountain ranges",
-    "Deserts",
-    "Plateaus",
-    "Mountain passes",
-    "Glaciers",
-    "Canals",
-    "Fish farms",
-    "Drought areas",
-    "Industrial zones",
+    "Province", "Crops", "Livestock", "Fruits", "Forests", "Energy",
+    "Mineral", "Rivers", "Barrages", "Ports", "Infrastructure", "Landforms",
+    "Rain systems", "Airports", "Dryports", "Sea ports", "Dams",
+    "Major Industries", "Energy pipelines", "Population", "Mountain ranges",
+    "Deserts", "Plateaus", "Mountain passes", "Glaciers", "Canals",
+    "Fish farms", "Drought areas", "Industrial zones",
   ];
 
   const normalizeQuery = (input) => {
@@ -97,27 +68,67 @@ export default function GeographyMapsScreen() {
 
   const formatCoord = (coord) => ({ latitude: coord[0], longitude: coord[1] });
 
-  const extractAiAnswer = (response) => {
-    if (!response) return null;
-    if (typeof response === "string") return response;
-    return (
-      response.answer ??
-      response.explanation ??
-      response.response ??
-      response.data?.answer ??
-      response.data?.explanation ??
-      null
-    );
+  // ✅ Fix: 2 points se valid rectangle polygon banao
+  // Backend sirf bounding box deta hai (top-left, bottom-right)
+  // Hum usse 4 corners + closing point mein convert karte hain
+  const expandToPolygon = (rawCoords) => {
+    if (!rawCoords || rawCoords.length === 0) return [];
+
+    // Already enough points hain to use directly
+    if (rawCoords.length >= 3) {
+      return rawCoords.map(formatCoord);
+    }
+
+    // Sirf 1 point — small square banao
+    if (rawCoords.length === 1) {
+      const [lat, lng] = rawCoords[0];
+      const delta = 0.1;
+      return [
+        { latitude: lat - delta, longitude: lng - delta },
+        { latitude: lat + delta, longitude: lng - delta },
+        { latitude: lat + delta, longitude: lng + delta },
+        { latitude: lat - delta, longitude: lng + delta },
+      ];
+    }
+
+    // ✅ Exactly 2 points — bounding box se rectangle banao
+    // point1 = [lat1, lng1], point2 = [lat2, lng2]
+    const lats = rawCoords.map((c) => c[0]);
+    const lngs = rawCoords.map((c) => c[1]);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    return [
+      { latitude: minLat, longitude: minLng }, // bottom-left
+      { latitude: maxLat, longitude: minLng }, // top-left
+      { latitude: maxLat, longitude: maxLng }, // top-right
+      { latitude: minLat, longitude: maxLng }, // bottom-right
+    ];
   };
 
-  const formattedRivers = [
+  // ✅ Center coordinate nikalo (modal/map focus ke liye)
+  const getCenterCoord = (rawCoords) => {
+    if (!rawCoords || rawCoords.length === 0) return null;
+    const lats = rawCoords.map((c) => c[0]);
+    const lngs = rawCoords.map((c) => c[1]);
+    return {
+      latitude: (Math.min(...lats) + Math.max(...lats)) / 2,
+      longitude: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+    };
+  };
+
+  const formattedFeatures = [
     ...(apiResponse?.points?.map((point) => ({
       label: point.label,
       color: point.color || Colors.accent,
       coords: point.data.map((p) => formatCoord(p.coordinates ?? p)),
       renderType: "marker",
-      facts: point.facts,
-      icon: point.icon
+      facts: point.facts || "",
+      description: point.description || "",
+      rawCoordinates: point.data.map((p) => p.coordinates ?? p),
+      icon: point.icon,
     })) || []),
 
     ...(apiResponse?.paths?.map((path) => ({
@@ -125,48 +136,62 @@ export default function GeographyMapsScreen() {
       color: path.color || Colors.accent,
       coords: path.data.map((coord) => formatCoord(coord)),
       renderType: "polyline",
-      facts:
-        path.facts ||
-        path.description ||
-        path.data?.[0]?.description ||
-        "",
+      facts: path.facts || path.description || "",
+      description: path.description || "",
+      rawCoordinates: path.data,
     })) || []),
 
-    ...(apiResponse?.regions?.map((region) => ({
-      label: region.label,
-      color: region.color || Colors.accent,
-      coords: region.data.flatMap((r) => r.coordinates.map(formatCoord)),
-      renderType: "polygon",
-      facts: region.data[0]?.description
-    })) || []),
+    ...(apiResponse?.regions?.map((region) => {
+      // ✅ Har region ke data array se saare coordinates collect karo
+      const allRawCoords = region.data.flatMap((r) => r.coordinates || []);
+      // ✅ Description region.data[0].description se lo
+      const regionDescription = region.data[0]?.description || "";
+      // ✅ Expanded polygon coords
+      const polygonCoords = expandToPolygon(allRawCoords);
+
+      return {
+        label: region.label,
+        color: region.color || Colors.accent,
+        coords: polygonCoords,
+        renderType: "polygon",
+        facts: region.facts || "",
+        // ✅ description alag field mein store karo
+        description: regionDescription,
+        rawCoordinates: allRawCoords,
+        centerCoord: getCenterCoord(allRawCoords),
+      };
+    }) || []),
   ];
 
-  const getQueryType = () => "text";
-
-  const handleFeaturePress = async (feature) => {
+  const handleFeaturePress = (feature) => {
     setSelectedFeature(feature);
-    setFeatureDetails(feature.facts?.trim() || null);
-    setIsFetchingDetails(true);
+  };
 
-    try {
-      const prompt = `You are a Cambridge O Level Geography (2217) tutor. The student selected "${feature.label}" on a map of Pakistan. Write a focused, syllabus-aligned breakdown for this specific feature only (not a generic rivers overview). Do not say it is outside the syllabus unless it truly is not in 2217.
+  // ✅ Facts ko semicolon ya newline se split karo
+  const parseFacts = (factsString) => {
+    if (!factsString) return [];
+    const splitChar = factsString.includes(";") ? ";" : "\n";
+    return factsString
+      .split(splitChar)
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+  };
 
-Structure exactly as:
-### [1] Curriculum Context:
-### [2] Regional/Physical Analysis:
-### [3] Significance:
-### [4] Tutor Wisdom:`;
-
-      const response = await askAIFunction({ query: prompt, marks: 4 });
-      const answer = extractAiAnswer(response);
-      if (answer) {
-        setFeatureDetails(answer);
-      }
-    } catch (error) {
-      console.error("Failed to fetch feature specific detail:", error);
-    } finally {
-      setIsFetchingDetails(false);
-    }
+  // ✅ explanation ka [1] [2] format parse karo
+  const parseExplanation = (explanationText) => {
+    if (!explanationText) return [];
+    return explanationText
+      .split(/\[(\d+)\]/)
+      .reduce((acc, part, index, arr) => {
+        if (/^\d+$/.test(part)) {
+          const content = arr[index + 1] || "";
+          const lines = content.trim().split("\n");
+          const heading = lines[0]?.trim() || "";
+          const body = lines.slice(1).join("\n").trim();
+          acc.push({ number: part, heading, body });
+        }
+        return acc;
+      }, []);
   };
 
   return (
@@ -219,41 +244,47 @@ Structure exactly as:
           )}
 
           {showResult && !isLoading && apiResponse && (
-            formattedRivers.length > 0 ? (
+            formattedFeatures.length > 0 ? (
               <View style={styles.resultBlock}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <Text style={styles.resultHeading}>GIS visualization</Text>
+                <View style={styles.resultHeader}>
+                  <Text style={styles.resultHeading}>GIS Visualization</Text>
                   {selectedFeature && (
                     <Pressable onPress={() => setSelectedFeature(null)}>
-                      <Text style={{ color: Colors.accent, fontSize: 12, fontWeight: '700' }}>Clear Selection</Text>
+                      <Text style={styles.clearBtn}>Clear Selection</Text>
                     </Pressable>
                   )}
                 </View>
 
                 <View style={styles.mapShell}>
-                  <GeoMapView 
-                    rivers={formattedRivers} 
+                  <GeoMapView
+                    rivers={formattedFeatures}
                     onFeaturePress={handleFeaturePress}
                     selectedFeatureId={selectedFeature?.label}
                   />
                 </View>
 
                 <GeoAnswerCard
-                  queryType={getQueryType()}
+                  queryType="text"
                   answer={apiResponse?.explanation}
                 />
               </View>
             ) : (
               <View style={styles.noDataCard}>
                 <View style={styles.noDataIconBg}>
-                  <MaterialCommunityIcons name="map-marker-off" size={40} color={Colors.accent} />
+                  <MaterialCommunityIcons
+                    name="map-marker-off"
+                    size={40}
+                    color={Colors.accent}
+                  />
                 </View>
                 <Text style={styles.noDataTitle}>Not in Syllabus</Text>
                 <Text style={styles.noDataText}>
-                  The query "{searchQuery}" is not recognized as a geographical feature in the O-Level syllabus. Please search for specific topics like Rivers, Dams, Crops, or Provinces.
+                  The query "{searchQuery}" is not recognized as a geographical
+                  feature in the O-Level syllabus. Please search for specific
+                  topics like Rivers, Dams, Crops, or Provinces.
                 </Text>
-                <Pressable 
-                  style={styles.retryBtn} 
+                <Pressable
+                  style={styles.retryBtn}
                   onPress={() => setShowResult(false)}
                 >
                   <Text style={styles.retryBtnText}>Try Another Topic</Text>
@@ -264,91 +295,133 @@ Structure exactly as:
         </ScrollView>
       </SafeAreaView>
 
-      {/* Feature Detail Popup */}
+      {/* ─── FEATURE DETAIL MODAL ─── */}
       <Modal
         visible={!!selectedFeature}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setSelectedFeature(null)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <LinearGradient
-              colors={[Colors.surface, Colors.surfaceAlt]}
+              colors={["#1e293b", "#0f172a"]}
               style={styles.modalGradient}
             >
+              <View style={styles.dragHandle} />
+
+              {/* Header */}
               <View style={styles.modalHeader}>
                 <View style={styles.modalTitleRow}>
-                  <MaterialCommunityIcons 
-                    name={selectedFeature?.renderType === 'marker' ? 'map-marker' : 'map-marker-path'} 
-                    size={24} 
-                    color={Colors.accent} 
-                  />
-                  <Text style={styles.modalTitle}>{selectedFeature?.label}</Text>
+                  <View style={[
+                    styles.featureIconBg,
+                    { backgroundColor: (selectedFeature?.color || "#3b82f6") + "22" },
+                  ]}>
+                    <MaterialCommunityIcons
+                      name={
+                        selectedFeature?.renderType === "marker"
+                          ? "map-marker"
+                          : selectedFeature?.renderType === "polygon"
+                          ? "vector-polygon"
+                          : "routes"
+                      }
+                      size={20}
+                      color={selectedFeature?.color || "#3b82f6"}
+                    />
+                  </View>
+                  <Text style={styles.modalTitle} numberOfLines={1}>
+                    {selectedFeature?.label}
+                  </Text>
                 </View>
-                <Pressable onPress={() => setSelectedFeature(null)} hitSlop={10}>
-                  <MaterialCommunityIcons name="close" size={24} color={Colors.textMuted} />
+                <Pressable
+                  onPress={() => setSelectedFeature(null)}
+                  style={styles.closeIconBtn}
+                  hitSlop={10}
+                >
+                  <MaterialCommunityIcons name="close" size={18} color="#94a3b8" />
                 </Pressable>
               </View>
 
+              {/* Badges */}
+              <View style={styles.typeBadgeRow}>
+                <View style={[
+                  styles.typeBadge,
+                  { borderColor: (selectedFeature?.color || "#3b82f6") + "66",
+                    backgroundColor: (selectedFeature?.color || "#3b82f6") + "18" }
+                ]}>
+                  <Text style={[styles.typeBadgeText, { color: selectedFeature?.color || "#3b82f6" }]}>
+                    {selectedFeature?.renderType === "polyline"
+                      ? "CANAL / RIVER PATH"
+                      : selectedFeature?.renderType === "polygon"
+                      ? "REGION / AREA"
+                      : "LOCATION POINT"}
+                  </Text>
+                </View>
+                <View style={styles.gisTag}>
+                  <MaterialCommunityIcons name="check-circle" size={14} color="#22c55e" />
+                  <Text style={styles.gisTagText}>Verified GIS Data</Text>
+                </View>
+              </View>
+
               <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalSubHeading}>
-                  {selectedFeature?.renderType === 'polyline' ? 'River / Path Analysis' : 'Location Details'}
-                </Text>
-                
-                {selectedFeature?.facts ? (
-                   <View style={styles.factBox}>
-                     <Text style={styles.factText}>{selectedFeature.facts}</Text>
-                   </View>
+
+                {/* ✅ 1. Description - region.data[0].description se aata hai */}
+                {selectedFeature?.description ? (
+                  <View style={styles.infoCardSection}>
+                    <View style={styles.sectionLabelRow}>
+                      <MaterialCommunityIcons name="map-legend" size={15} color="#38bdf8" />
+                      <Text style={styles.sectionLabel}>About this Feature</Text>
+                    </View>
+                    <Text style={styles.descriptionText}>
+                      {selectedFeature.description}
+                    </Text>
+                  </View>
                 ) : null}
 
-                <Text style={styles.modalDescriptionTitle}>Syllabus Context (AI Generated):</Text>
-                
-                {isFetchingDetails ? (
-                  <View style={{ marginTop: 20, alignItems: 'center' }}>
-                    <ActivityIndicator size="small" color={Colors.accent} />
-                    <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 8 }}>AI analyzing {selectedFeature?.label} specifically...</Text>
+                {/* ✅ 2. Key Facts - region.facts se aata hai (semicolon split) */}
+                {selectedFeature?.facts ? (
+                  <View style={styles.infoCardSection}>
+                    <View style={styles.sectionLabelRow}>
+                      <MaterialCommunityIcons name="text-box-search-outline" size={15} color="#38bdf8" />
+                      <Text style={styles.sectionLabel}>Key Facts</Text>
+                    </View>
+                    {parseFacts(selectedFeature.facts).map((fact, idx) => (
+                      <View key={idx} style={styles.factItem}>
+                        <View style={[styles.factDot, { backgroundColor: selectedFeature?.color || "#3b82f6" }]} />
+                        <Text style={styles.factText}>{fact}</Text>
+                      </View>
+                    ))}
                   </View>
-                ) : featureDetails ? (
-                  featureDetails.split('###').map((part, index) => {
-                    if (!part.trim()) return null;
-                    
-                    // Agar part heading se start ho raha hai (e.g. [1] Title)
-                    const headingMatch = part.match(/^\s*(\[\d+\]\s+[^:\n]+)(?::|\n|$)/);
-                    if (headingMatch) {
-                      const heading = headingMatch[1];
-                      const content = part.replace(headingMatch[0], '').trim();
-                      return (
-                        <View key={`part-${index}`} style={{ marginTop: 12 }}>
-                          <Text style={styles.explanationHeading}>{heading}</Text>
-                          <Text style={styles.modalDescription}>{content}</Text>
-                        </View>
-                      );
-                    }
-                    
-                    return (
-                      <Text key={`part-${index}`} style={styles.modalDescription}>
-                        {part.trim()}
-                      </Text>
-                    );
-                  })
-                ) : (
-                  <Text style={styles.modalDescription}>
-                    Could not load a detailed answer for {selectedFeature?.label}. Check your connection and try again, or use the overview below the map.
-                  </Text>
-                )}
+                ) : null}
 
-                <View style={[styles.statusBadge, { backgroundColor: selectedFeature?.color + '22', borderColor: selectedFeature?.color }]}>
-                   <Text style={[styles.statusBadgeText, { color: selectedFeature?.color }]}>Verified GIS Data</Text>
+                {/* ✅ 3. Syllabus Explanation Sections - apiResponse.explanation se */}
+                {apiResponse?.explanation &&
+                  parseExplanation(apiResponse.explanation).map((section, idx) => (
+                    <View key={idx} style={styles.infoCardSection}>
+                      <View style={styles.sectionLabelRow}>
+                        <View style={styles.sectionNumberBadge}>
+                          <Text style={styles.sectionNumberText}>{section.number}</Text>
+                        </View>
+                        <Text style={styles.sectionLabel}>{section.heading}</Text>
+                      </View>
+                      {section.body ? (
+                        <Text style={styles.descriptionText}>{section.body}</Text>
+                      ) : null}
+                    </View>
+                  ))}
+
+                {/* ✅ 4. Exam Tip */}
+                <View style={styles.tipBox}>
+                  <MaterialCommunityIcons name="lightbulb-on-outline" size={16} color="#f59e0b" />
+                  <Text style={styles.tipText}>
+                    Exam Tip: Use specific facts while answering 4-mark or 6-mark distribution analysis questions.
+                  </Text>
                 </View>
               </ScrollView>
 
-              <Pressable 
+              <Pressable
                 onPress={() => setSelectedFeature(null)}
-                style={({ pressed }) => [
-                  styles.modalCloseBtn,
-                  pressed && { opacity: 0.8 }
-                ]}
+                style={({ pressed }) => [styles.modalCloseBtn, pressed && { opacity: 0.8 }]}
               >
                 <Text style={styles.modalCloseBtnText}>GOT IT</Text>
               </Pressable>
@@ -371,26 +444,21 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     backgroundColor: "rgba(255,255,255,0.05)",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.22,
-        shadowRadius: 14,
-      },
-      android: { elevation: 8 },
-    }),
   },
-  resultBlock: {
-    marginTop: 20,
+  resultBlock: { marginTop: 20 },
+  resultHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
   },
   resultHeading: {
     color: Colors.accent,
     fontSize: 14,
     fontWeight: "800",
-    letterSpacing: 0.8,
     textTransform: "uppercase",
   },
+  clearBtn: { color: Colors.accent, fontSize: 12, fontWeight: "700" },
   mapShell: {
     height: 300,
     borderRadius: 16,
@@ -399,178 +467,167 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  centerBox: {
-    marginTop: 40,
+  centerBox: { marginTop: 40, alignItems: "center", justifyContent: "center" },
+  loadingText: { color: Colors.white, marginTop: 10, fontSize: 14, opacity: 0.8 },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.82)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    width: "100%",
+    maxHeight: "85%",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: "hidden",
+  },
+  modalGradient: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 30,
+  },
+  dragHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  modalTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  featureIconBg: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  loadingText: {
-    color: Colors.white,
-    marginTop: 10,
-    fontSize: 14,
-    opacity: 0.8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    width: '100%',
-    maxHeight: '80%',
-    borderRadius: 28,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-  },
-  modalGradient: {
-    padding: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  modalTitle: {
-    color: Colors.white,
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  modalBody: {
-    marginBottom: 20,
-  },
-  modalSubHeading: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  factBox: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+  modalTitle: { color: "#ffffff", fontSize: 22, fontWeight: "700", flex: 1 },
+  closeIconBtn: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  factText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    fontStyle: 'italic',
+  typeBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
   },
-  modalDescriptionTitle: {
-    color: Colors.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 8,
-    opacity: 0.6,
-  },
-  explanationHeading: {
-    color: Colors.accent,
-    fontSize: 15,
-    fontWeight: '800',
-    marginBottom: 4,
-    marginTop: 8,
-  },
-  modalDescription: {
-    color: Colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
+  typeBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
-    marginTop: 20,
   },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  modalCloseBtn: {
-    backgroundColor: Colors.primary,
+  typeBadgeText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
+  gisTag: { flexDirection: "row", alignItems: "center", gap: 6 },
+  gisTagText: { color: "#22c55e", fontSize: 13, fontWeight: "600" },
+  modalBody: { marginBottom: 16 },
+  infoCardSection: {
+    backgroundColor: "rgba(30, 41, 59, 0.7)",
     borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  sectionLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  sectionLabel: {
+    color: "#38bdf8",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sectionNumberBadge: {
+    backgroundColor: "#38bdf8",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionNumberText: { color: "#0f172a", fontSize: 11, fontWeight: "800" },
+  descriptionText: { color: "#cbd5e1", fontSize: 14, lineHeight: 22 },
+  factItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 10,
+  },
+  factDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 8,
+    flexShrink: 0,
+  },
+  factText: { color: "#e2e8f0", fontSize: 14, lineHeight: 22, flex: 1 },
+  tipBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: "rgba(245,158,11,0.06)",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.15)",
+    marginBottom: 6,
+  },
+  tipText: { color: "#fbbf24", fontSize: 13, lineHeight: 18, flex: 1 },
+  modalCloseBtn: {
+    backgroundColor: "#3b82f6",
+    borderRadius: 14,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
+    marginTop: 10,
   },
-  modalCloseBtnText: {
-    color: Colors.white,
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
+  modalCloseBtnText: { color: "#ffffff", fontSize: 15, fontWeight: "700", letterSpacing: 0.5 },
+
+  // No Data
   noDataCard: {
     marginTop: 30,
     backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 24,
     padding: 30,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: "center",
   },
   noDataIconBg: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(244, 63, 94, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: "rgba(244,63,94,0.1)",
+    justifyContent: "center", alignItems: "center", marginBottom: 20,
   },
-  noDataTitle: {
-    color: Colors.white,
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 10,
-  },
+  noDataTitle: { color: Colors.white, fontSize: 20, fontWeight: "800", marginBottom: 10 },
   noDataText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 22,
-    textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 10,
+    color: Colors.textSecondary, fontSize: 14, lineHeight: 22,
+    textAlign: "center", marginBottom: 24,
   },
   retryBtn: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.primaryDark,
-    width: '80%',
-    alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    paddingHorizontal: 36, paddingVertical: 14,
+    borderRadius: 16, width: "80%", alignItems: "center",
   },
-  retryBtnText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
+  retryBtnText: { color: Colors.white, fontSize: 15, fontWeight: "700" },
 });

@@ -4,17 +4,22 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  Modal, Pressable, ScrollView,
-  Text, View, Platform, StyleSheet,
+  Modal,
+  Platform,
+  Pressable, ScrollView,
+  StyleSheet,
+  Text, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import RecentActivityHome from "../../components/activity/RecentActivityHome";
 import AppDecor from "../../components/shared/AppDecor";
 import SubjectCard from "../../components/shared/SubjectCard";
-import RecentActivityHome from "../../components/activity/RecentActivityHome";
 import ThemedConfirmModal from "../../components/shared/ThemedConfirmModal";
 import Colors from "../../constants/Colors";
 import { getProfile } from "../../lib/storage";
+import useChatHistory from "../../src/hooks/useChatHistory";
 import useExitOnBack from "../../src/hooks/useExitOnBack";
+
 
 export default function HomeTab() {
   const router = useRouter();
@@ -24,6 +29,9 @@ export default function HomeTab() {
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showBanner, setShowBanner] = useState(Boolean(authMessage));
   const { exitVisible, setExitVisible, confirmExit } = useExitOnBack(true);
+
+  const { data: count, isLoading, isError } = useChatHistory();
+
 
   useFocusEffect(
     useCallback(() => {
@@ -69,6 +77,7 @@ export default function HomeTab() {
           ) : null}
 
           {/* Top Row: greeting + actions (NO settings icon here anymore) */}
+
           <View style={styles.topRow}>
             <View>
               <Text style={styles.hello}>Hello,</Text>
@@ -85,15 +94,24 @@ export default function HomeTab() {
           <LinearGradient
             colors={["rgba(63,183,168,0.25)", "rgba(79,209,197,0.06)"]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.statCard}
-          >
+            style={styles.statCard}>
             <View style={styles.statInner}>
               <View style={styles.statIcon}>
                 <MaterialCommunityIcons name="chart-box-outline" size={26} color={Colors.accent} />
               </View>
               <View style={{ flex: 1, marginLeft: 14 }}>
                 <Text style={styles.statLabel}>Total questions asked</Text>
-                <Text style={styles.statNum}>25</Text>
+
+                {/* ⬇️ YAHA DATA DYNAMIC HO GAYA ⬇️ */}
+                <Text style={styles.statNum}>
+                  {isLoading ? (
+                    "..."
+                  ) : isError ? (
+                    "0"
+                  ) : (
+                    count?.count ?? 0  // Implies: count object ke andar se 'count' nikal lo
+                  )}
+                </Text>
               </View>
               <View style={styles.statBadge}>
                 <Text style={styles.statBadgeTxt}>This week</Text>
@@ -101,7 +119,6 @@ export default function HomeTab() {
             </View>
           </LinearGradient>
 
-          {/* Subjects */}
           <View style={styles.sectionHead}>
             <MaterialCommunityIcons name="view-grid-outline" size={20} color={Colors.accent} />
             <Text style={styles.sectionTitle}>Your subjects</Text>

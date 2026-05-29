@@ -1,5 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -7,22 +9,21 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
-  Platform,
-  StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import RecentActivityHome from "../components/activity/RecentActivityHome";
 import AppDecor from "../components/shared/AppDecor";
 import SubjectCard from "../components/shared/SubjectCard";
+import ThemedConfirmModal from "../components/shared/ThemedConfirmModal";
 import Colors from "../constants/Colors";
 import { getProfile } from "../lib/storage";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useQueryClient } from "@tanstack/react-query";
-import RecentActivityHome from "../components/activity/RecentActivityHome";
-import ThemedConfirmModal from "../components/shared/ThemedConfirmModal";
+import useChatHistory from "../src/hooks/useChatHistory";
 import useExitOnBack from "../src/hooks/useExitOnBack";
 
 export default function Dashboard() {
@@ -36,7 +37,12 @@ export default function Dashboard() {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showBanner, setShowBanner] = useState(Boolean(authMessage));
   const { exitVisible, setExitVisible, confirmExit } = useExitOnBack(true);
-
+  
+  const { data: count, isLoading, isError } = useChatHistory();
+  
+  // const totalCount = isLoading ? "..." : isError ? "0" : responseData?.count ?? 0;
+ 
+  console.log(totalCount) 
   useFocusEffect(
     useCallback(() => {
       getProfile().then((p) => {
@@ -171,6 +177,8 @@ export default function Dashboard() {
             </View>
           </View>
 
+
+
           <LinearGradient
             colors={["rgba(63,183,168,0.25)", "rgba(79,209,197,0.08)"]}
             start={{ x: 0, y: 0 }}
@@ -184,18 +192,21 @@ export default function Dashboard() {
                   size={26}
                   color={Colors.accent}
                 />
+           
               </View>
+               <p>SALAM</p>
               <View style={{ flex: 1, marginLeft: 14 }}>
                 <Text style={{ color: Colors.textSecondary, fontSize: 13 }}>
                   Total questions asked
                 </Text>
-                <Text style={styles.statNumber}>25</Text>
+                <Text style={styles.statNumber}>{data}</Text>
               </View>
               <View style={[styles.statBadge, { marginLeft: 10 }]}>
-                <Text style={styles.statBadgeText}>This week</Text>
+                <Text style={styles.statBadgeText}>This Status</Text>
               </View>
             </View>
           </LinearGradient>
+
 
           <View style={styles.sectionHead}>
             <MaterialCommunityIcons

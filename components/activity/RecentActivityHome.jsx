@@ -1,17 +1,19 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+
 import Colors from "../../constants/Colors";
-import useChatHistory from "../../src/hooks/useChatHistory";
-import {
-  chatToSidebarItem,
-  normalizeChats,
-} from "../../lib/chatHistoryUtils";
+// Sahi named import yahan lagaya hai
+import { chatToSidebarItem, normalizeChats } from "../../lib/chatHistoryUtils";
+import useChatHistory from "../../src/hooks/useChatHistory.js";
+
 import ChatSidebarRow from "./ChatSidebarRow";
+
 
 export default function RecentActivityHome() {
   const router = useRouter();
   const { data, isLoading, isError } = useChatHistory();
+
   const chats = normalizeChats(data);
   const items = chats.slice(0, 3).map(chatToSidebarItem);
 

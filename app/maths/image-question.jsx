@@ -1,9 +1,11 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -12,7 +14,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Image } from "expo-image";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
 import QuestionInput from "../../components/shared/QuestionInput";
@@ -20,12 +21,14 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
+import useGraphAnalysis from "../../src/hooks/useMathsGraphAnalysis";
 
 export default function MathsImageQuestionScreen() {
   const router = useRouter();
   const [uri, setUri] = useState(null);
   const [note, setNote] = useState("");
   const [dialog, setDialog] = useState(null);
+  const { mutate: analyzeGraph, isPending } = useGraphAnalysis(); 
 
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -54,13 +57,27 @@ export default function MathsImageQuestionScreen() {
       return;
     }
 
-    router.push({
-      pathname: "/maths/solution-image",
-      params: {
-        sourceImageUri: encodeURIComponent(uri),
-        ...(note.trim() ? { note: note.trim() } : {}),
-      },
-    });
+    const filename = uri.split("/").pop();
+    const match = /\.(\w+)$/.exec(filename || "");
+    const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+    // ✅ API Mutation call with image details
+    analyzeGraph(
+      { uri, name: filename, type },
+      {
+        onSuccess: (apiResponse) => {
+          // ✅ API ka data router ke params mein stringify karke solution screen par forward kar diya
+          router.push({
+            pathname: "/maths/solution-image",
+            params: {
+              sourceImageUri: encodeURIComponent(uri),
+              apiData: JSON.stringify(apiResponse),
+              ...(note.trim() ? { note: note.trim() } : {}),
+            },
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -70,7 +87,7 @@ export default function MathsImageQuestionScreen() {
         Colors.backgroundMiddle,
         Colors.backgroundEnd,
       ]}
-      className="flex-1"
+      style={styles.flex1}
     >
       <AppDecor />
       <ThemedMessageModal
@@ -79,7 +96,7 @@ export default function MathsImageQuestionScreen() {
         message={dialog?.message ?? ""}
         onClose={() => setDialog(null)}
       />
-      <SafeAreaView className="flex-1">
+      <SafeAreaView style={styles.flex1}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
@@ -112,7 +129,7 @@ export default function MathsImageQuestionScreen() {
                 </Pressable>
               )}
 
-              {uri ? (
+              {uri && !isPending ? (
                 <Pressable onPress={pickImage} style={styles.changeBtn}>
                   <Text style={styles.changeBtnText}>Choose different image</Text>
                 </Pressable>
@@ -128,21 +145,29 @@ export default function MathsImageQuestionScreen() {
                 onChangeText={setNote}
                 placeholder="e.g. Solve part (a) only"
                 helperText="Add a short note if part of the question is unclear."
+                editable={!isPending}
               />
             </SectionCard>
 
             <View style={{ height: 10 }} />
 
-            <PrimaryButton
-              title={uri ? "Solve from image" : "Pick image first"}
-              handlePress={() => {
-                if (!uri) {
-                  pickImage();
-                  return;
-                }
-                handleSolve();
-              }}
-            />
+            {isPending ? (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color={Colors.accent} />
+                <Text style={styles.loaderText}>Analyzing graph question...</Text>
+              </View>
+            ) : (
+              <PrimaryButton
+                title={uri ? "Solve from image" : "Pick image first"}
+                handlePress={() => {
+                  if (!uri) {
+                    pickImage();
+                    return;
+                  }
+                  handleSolve();
+                }}
+              />
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -151,6 +176,9 @@ export default function MathsImageQuestionScreen() {
 }
 
 const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
   scroll: {
     paddingHorizontal: 22,
     paddingBottom: 32,
@@ -203,5 +231,16 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "600",
     fontSize: 14,
+  },
+  loaderContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loaderText: {
+    marginTop: 8,
+    color: Colors.accent,
+    fontWeight: "700",
+    fontSize: 15,
   },
 });

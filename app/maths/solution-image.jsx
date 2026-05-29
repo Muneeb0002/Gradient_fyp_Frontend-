@@ -10,7 +10,6 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 import { formatRawQuestion } from "../../lib/mathQuestionText";
-import { MOCK_MATH_IMAGE_SOLUTION } from "../../src/mocks/mathImageSolution.mock";
 
 function decodeUriParam(value) {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -24,12 +23,37 @@ function decodeUriParam(value) {
 
 export default function MathsImageSolutionScreen() {
   const router = useRouter();
-  const { sourceImageUri } = useLocalSearchParams();
+  const { sourceImageUri, apiData } = useLocalSearchParams();
 
-  const data = MOCK_MATH_IMAGE_SOLUTION;
+  // ✅ Fallback validation agar galti se data na aaye to screen crash na ho
+  let data = null;
+  try {
+    if (apiData) {
+      data = JSON.parse(Array.isArray(apiData) ? apiData[0] : apiData);
+    }
+  } catch (e) {
+    console.error("Error parsing API data:", e);
+  }
+
   const inputImageUri = decodeUriParam(sourceImageUri);
-  const displayMarks = data.marks;
-  const questionText = formatRawQuestion(data.raw_question);
+
+  if (!data) {
+    return (
+      <LinearGradient
+        colors={[Colors.backgroundStart, Colors.backgroundEnd]}
+        style={styles.flex1}
+      >
+        <SafeAreaView style={[styles.flex1, { justifyContent: "center", alignItems: "center" }]}>
+          <Text style={{ color: Colors.white, fontSize: 16, fontWeight: "700" }}>
+            No solution data available.
+          </Text>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  const displayMarks = data.marks ?? 0;
+  const questionText = formatRawQuestion(data.raw_question ?? "");
 
   return (
     <LinearGradient
@@ -38,10 +62,10 @@ export default function MathsImageSolutionScreen() {
         Colors.backgroundMiddle,
         Colors.backgroundEnd,
       ]}
-      className="flex-1"
+      style={styles.flex1}
     >
       <AppDecor />
-      <SafeAreaView className="flex-1">
+      <SafeAreaView style={styles.flex1}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
@@ -55,7 +79,7 @@ export default function MathsImageSolutionScreen() {
 
           <View style={styles.metaStrip}>
             <Text style={styles.metaText}>
-              Question {data.question_number} · {displayMarks} mark
+              Question {data.question_number ?? 1} · {displayMarks} mark
               {Number(displayMarks) !== 1 ? "s" : ""}
             </Text>
             <Text style={styles.metaSub}>
@@ -87,7 +111,7 @@ export default function MathsImageSolutionScreen() {
             label="Step-by-step working"
             icon="format-list-numbered"
           >
-            <MathImageStepList steps={data.steps} />
+            <MathImageStepList steps={data.steps ?? []} />
           </SectionCard>
 
           {data.visual_data ? (
@@ -102,7 +126,9 @@ export default function MathsImageSolutionScreen() {
           <View style={styles.sectionGap} />
 
           <SectionCard label="Teacher's commentary" icon="school-outline">
-            <Text style={styles.bodyTextMuted}>{data.mark_commentary}</Text>
+            <Text style={styles.bodyTextMuted}>
+              {data.mark_commentary || "No commentary provided."}
+            </Text>
           </SectionCard>
 
           <LinearGradient
@@ -112,7 +138,9 @@ export default function MathsImageSolutionScreen() {
             style={styles.answerStrip}
           >
             <Text style={styles.answerLabel}>Final answer</Text>
-            <Text style={styles.answerValue}>{data.final_answer}</Text>
+            <Text style={styles.answerValue}>
+              {data.final_answer || "N/A"}
+            </Text>
           </LinearGradient>
         </ScrollView>
       </SafeAreaView>
@@ -121,6 +149,9 @@ export default function MathsImageSolutionScreen() {
 }
 
 const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
   scroll: { paddingHorizontal: 22, paddingBottom: 36, paddingTop: 8 },
   sectionGap: { height: 14 },
   metaStrip: {

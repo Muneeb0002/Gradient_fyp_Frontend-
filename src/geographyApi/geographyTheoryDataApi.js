@@ -6,3 +6,4 @@ export const geographyTheoryDataApi = async (payload) => {
   const response = await api.post("geography/geography_theory", payload); 
   return response.data;
 };
+
