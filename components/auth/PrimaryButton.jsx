@@ -1,5 +1,6 @@
-import { ActivityIndicator, Pressable, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import Colors from "../../constants/Colors";
+import Typography from "../../constants/Typography";
 
 export default function PrimaryButton({
   title,
@@ -20,13 +21,15 @@ export default function PrimaryButton({
       {isLoading ? (
         <ActivityIndicator color={Colors.white} />
       ) : (
-        <Text
-          className="text-base font-bold tracking-wide"
-          style={{ color: Colors.white }}
-        >
-          {title}
-        </Text>
+        <Text style={styles.label}>{title}</Text>
       )}
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  label: {
+    color: Colors.white,
+    ...Typography.button,
+  },
+});

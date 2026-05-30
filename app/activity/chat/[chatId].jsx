@@ -36,7 +36,10 @@ export default function ChatDetailScreen() {
       />
 
       {isLoading ? (
-        <ActivityLoading message="Opening chat…" />
+        <ActivityLoading
+          message="Opening chat"
+          subtitle="Loading this conversation…"
+        />
       ) : isError ? (
         <ActivityError
           message={error?.message || "Could not load this chat."}

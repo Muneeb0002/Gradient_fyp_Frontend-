@@ -53,7 +53,10 @@ export default function ActivitySessionsScreen() {
       />
 
       {isLoading ? (
-        <ActivityLoading message="Loading…" />
+        <ActivityLoading
+          message="Loading thread"
+          subtitle="Fetching sessions for this topic…"
+        />
       ) : isError ? (
         <ActivityError
           message={error?.message || "Could not load chats."}

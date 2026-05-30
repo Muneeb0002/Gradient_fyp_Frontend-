@@ -1,12 +1,20 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import AppLoader from "../shared/AppLoader";
 import Colors from "../../constants/Colors";
 
-export function ActivityLoading({ message = "Loading your chats…" }) {
+export function ActivityLoading({
+  message = "Loading",
+  subtitle,
+  compact = false,
+}) {
   return (
-    <View style={styles.center}>
-      <ActivityIndicator size="large" color={Colors.accent} />
-      <Text style={styles.loadingText}>{message}</Text>
+    <View style={[styles.center, compact && styles.centerCompact]}>
+      <AppLoader
+        compact={compact}
+        title={message}
+        subtitle={subtitle || "Please wait a moment…"}
+      />
     </View>
   );
 }
@@ -65,12 +73,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 20,
   },
-  loadingText: {
-    color: Colors.textMuted,
-    fontSize: 14,
-    marginTop: 14,
-    fontWeight: "600",
-  },
+  centerCompact: { paddingVertical: 16 },
   errorTitle: {
     color: Colors.white,
     fontSize: 18,

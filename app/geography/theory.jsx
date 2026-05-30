@@ -4,7 +4,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -18,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
+import AppLoader from "../../components/shared/AppLoader";
 import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
@@ -216,12 +216,13 @@ onSuccess: (res) => {
                 ))}
               </View>
 
-              {isPending && (
-                <ActivityIndicator
-                  style={{ marginBottom: 10 }}
-                  color={Colors.accent}
+              {isPending ? (
+                <AppLoader
+                  compact
+                  title="Generating answer"
+                  subtitle="AI is writing an examiner-style response…"
                 />
-              )}
+              ) : null}
 
               <PrimaryButton
                 title={isPending ? "Generating..." : "Generate answer"}

@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
+import AppLoader from "../../components/shared/AppLoader";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
@@ -186,8 +187,16 @@ export default function GeographyImageScreen() {
                 Upload a photo of a geography map, graph, or diagram to get a detailed examiner-style analysis.
               </Text>
 
+              {isPending ? (
+                <AppLoader
+                  compact
+                  title="Analyzing image"
+                  subtitle="AI is reading your map or diagram…"
+                />
+              ) : null}
+
               <PrimaryButton
-                title="Generate ans"
+                title={isPending ? "Analyzing…" : "Generate ans"}
                 handlePress={handleGenerate}
                 disabled={isPending}
               />

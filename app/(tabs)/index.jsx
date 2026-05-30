@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import RecentActivityHome from "../../components/activity/RecentActivityHome";
 import AppDecor from "../../components/shared/AppDecor";
+import SectionHeading from "../../components/shared/SectionHeading";
 import SubjectCard from "../../components/shared/SubjectCard";
 import ThemedConfirmModal from "../../components/shared/ThemedConfirmModal";
 import Colors from "../../constants/Colors";
@@ -119,10 +120,7 @@ export default function HomeTab() {
             </View>
           </LinearGradient>
 
-          <View style={styles.sectionHead}>
-            <MaterialCommunityIcons name="view-grid-outline" size={20} color={Colors.accent} />
-            <Text style={styles.sectionTitle}>Your subjects</Text>
-          </View>
+          <SectionHeading title="Your subjects" icon="view-grid-outline" />
           <View style={styles.subjectGrid}>
             <SubjectCard title="Mathematics" icon="calculator-variant" onPress={() => router.push("/maths")} />
             <SubjectCard title="History" icon="book-open-page-variant" onPress={() => router.push("/history")} />
@@ -131,17 +129,12 @@ export default function HomeTab() {
           </View>
 
           {/* Recent Activity */}
-          <View style={[styles.sectionHead, { marginTop: 22 }]}>
-            <MaterialCommunityIcons name="history" size={20} color={Colors.accent} />
-            <Text style={styles.sectionTitle}>Chats</Text>
-            <Pressable
-              onPress={() => router.push("/activity")}
-              hitSlop={8}
-              style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.85 }]}
-            >
-              <Text style={styles.viewAllText}>View all</Text>
-            </Pressable>
-          </View>
+          <SectionHeading
+            title="Chats"
+            icon="history"
+            style={{ marginTop: 22 }}
+            onViewAll={() => router.push("/activity")}
+          />
           <RecentActivityHome />
 
           {/* Replay Intro Tour */}

@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Text, View, Platform, StyleSheet } from "react-native";
 import Colors from "../../constants/Colors";
+import Typography from "../../constants/Typography";
 
 /**
  * Labelled panel for question / solution / output blocks.
@@ -47,9 +48,6 @@ const styles = StyleSheet.create({
   label: {
     marginLeft: 8,
     color: Colors.accent,
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
+    ...Typography.sectionLabel,
   },
 });

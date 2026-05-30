@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pressable, Text, View, Platform, StyleSheet } from "react-native";
 import Colors from "../../constants/Colors";
+import Typography from "../../constants/Typography";
 
 /**
  * Consistent hero for subject / tool screens: back pill, icon, title, subtitle, accent bar.
@@ -73,8 +74,7 @@ const styles = StyleSheet.create({
   backText: {
     marginLeft: 4,
     color: Colors.textSecondary,
-    fontSize: 14,
-    fontWeight: "600",
+    ...Typography.back,
   },
   titleRow: {
     flexDirection: "row",
@@ -106,23 +106,18 @@ const styles = StyleSheet.create({
   },
   title: {
     color: Colors.white,
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: 0.2,
+    ...Typography.screenTitle,
   },
   titleCompact: {
-    fontSize: 18,
-    fontWeight: "700",
+    ...Typography.screenTitleCompact,
   },
   subtitle: {
     color: Colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 22,
+    ...Typography.screenSubtitle,
     marginTop: 6,
   },
   subtitleCompact: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.screenSubtitleCompact,
     marginTop: 4,
   },
   iconBoxCompact: {

@@ -1,24 +1,22 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GeoAnswerCard from "../../components/geography/GeoAnswerCard";
+import GeoFeatureModal from "../../components/geography/GeoFeatureModal";
 import GeoInput from "../../components/geography/GeoInput";
 import GeoMapView from "../../components/geography/GeoMapView";
 import AppDecor from "../../components/shared/AppDecor";
+import AppLoader from "../../components/shared/AppLoader";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
+import Typography from "../../constants/Typography";
+import { extractAiAnswer } from "../../lib/aiResponse";
+import { parseGeoSyllabusSections } from "../../lib/parseGeoExplanation";
+import { askAIFunction } from "../../src/history.api.js/askAIFunction";
 import useMapQuery from "../../src/hooks/useGeographyMapQuery.js";
 
 export default function GeographyMapsScreen() {
@@ -26,6 +24,8 @@ export default function GeographyMapsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
+  const [featureSections, setFeatureSections] = useState([]);
+  const [isFeatureLoading, setIsFeatureLoading] = useState(false);
 
   const {
     data: apiResponse,
@@ -33,14 +33,6 @@ export default function GeographyMapsScreen() {
     isError,
     error,
   } = useMapQuery(searchQuery);
-
-  useEffect(() => {
-    if (apiResponse) {
-      console.log("POINTS:", JSON.stringify(apiResponse?.points));
-      console.log("PATHS:", JSON.stringify(apiResponse?.paths));
-      console.log("REGIONS:", JSON.stringify(apiResponse?.regions));
-    }
-  }, [apiResponse]);
 
   const VALID_QUERIES = [
     "Province", "Crops", "Livestock", "Fruits", "Forests", "Energy",
@@ -163,35 +155,39 @@ export default function GeographyMapsScreen() {
     }) || []),
   ];
 
-  const handleFeaturePress = (feature) => {
+  const handleFeaturePress = async (feature) => {
     setSelectedFeature(feature);
+    setFeatureSections([]);
+    setIsFeatureLoading(true);
+
+    const fallbackSections = apiResponse?.explanation
+      ? parseGeoSyllabusSections(apiResponse.explanation)
+      : [];
+
+    try {
+      const prompt = `You are a Cambridge O Level Geography (2217) tutor. Write a focused breakdown for "${feature.label}" in Pakistan only.
+
+Structure exactly as four parts:
+### [1] Curriculum Context:
+### [2] Regional/Physical Analysis:
+### [3] Significance:
+### [4] Tutor Wisdom:`;
+
+      const response = await askAIFunction({ query: prompt, marks: 4 });
+      const answer = extractAiAnswer(response);
+      const parsed = answer ? parseGeoSyllabusSections(answer) : [];
+      setFeatureSections(parsed.length > 0 ? parsed : fallbackSections);
+    } catch {
+      setFeatureSections(fallbackSections);
+    } finally {
+      setIsFeatureLoading(false);
+    }
   };
 
-  // ✅ Facts ko semicolon ya newline se split karo
-  const parseFacts = (factsString) => {
-    if (!factsString) return [];
-    const splitChar = factsString.includes(";") ? ";" : "\n";
-    return factsString
-      .split(splitChar)
-      .map((f) => f.trim())
-      .filter((f) => f.length > 0);
-  };
-
-  // ✅ explanation ka [1] [2] format parse karo
-  const parseExplanation = (explanationText) => {
-    if (!explanationText) return [];
-    return explanationText
-      .split(/\[(\d+)\]/)
-      .reduce((acc, part, index, arr) => {
-        if (/^\d+$/.test(part)) {
-          const content = arr[index + 1] || "";
-          const lines = content.trim().split("\n");
-          const heading = lines[0]?.trim() || "";
-          const body = lines.slice(1).join("\n").trim();
-          acc.push({ number: part, heading, body });
-        }
-        return acc;
-      }, []);
+  const closeFeatureModal = () => {
+    setSelectedFeature(null);
+    setFeatureSections([]);
+    setIsFeatureLoading(false);
   };
 
   return (
@@ -224,21 +220,21 @@ export default function GeographyMapsScreen() {
             <GeoInput compact onSubmit={handleSubmit} />
           </SectionCard>
 
-          {isLoading && (
-            <View style={styles.centerBox}>
-              <ActivityIndicator size="large" color={Colors.accent} />
-              <Text style={styles.loadingText}>
-                {searchQuery.trim()
-                  ? `AI Engine analyzing ${searchQuery.trim()}...`
-                  : "AI Engine analyzing..."}
-              </Text>
-            </View>
+          {isLoading && showResult && (
+            <AppLoader
+              title="Building your map"
+              subtitle={
+                searchQuery.trim()
+                  ? `Analyzing “${searchQuery.trim()}” for O Level Geography…`
+                  : "Preparing GIS data…"
+              }
+            />
           )}
 
-          {isError && (
-            <View style={styles.centerBox}>
-              <Text style={{ color: "red" }}>
-                Error: {error?.message || "Failed to fetch map"}
+          {isError && showResult && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>
+                {error?.message || "Failed to fetch map. Please try again."}
               </Text>
             </View>
           )}
@@ -295,140 +291,13 @@ export default function GeographyMapsScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* ─── FEATURE DETAIL MODAL ─── */}
-      <Modal
+      <GeoFeatureModal
+        feature={selectedFeature}
         visible={!!selectedFeature}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setSelectedFeature(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <LinearGradient
-              colors={["#1e293b", "#0f172a"]}
-              style={styles.modalGradient}
-            >
-              <View style={styles.dragHandle} />
-
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalTitleRow}>
-                  <View style={[
-                    styles.featureIconBg,
-                    { backgroundColor: (selectedFeature?.color || "#3b82f6") + "22" },
-                  ]}>
-                    <MaterialCommunityIcons
-                      name={
-                        selectedFeature?.renderType === "marker"
-                          ? "map-marker"
-                          : selectedFeature?.renderType === "polygon"
-                          ? "vector-polygon"
-                          : "routes"
-                      }
-                      size={20}
-                      color={selectedFeature?.color || "#3b82f6"}
-                    />
-                  </View>
-                  <Text style={styles.modalTitle} numberOfLines={1}>
-                    {selectedFeature?.label}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => setSelectedFeature(null)}
-                  style={styles.closeIconBtn}
-                  hitSlop={10}
-                >
-                  <MaterialCommunityIcons name="close" size={18} color="#94a3b8" />
-                </Pressable>
-              </View>
-
-              {/* Badges */}
-              <View style={styles.typeBadgeRow}>
-                <View style={[
-                  styles.typeBadge,
-                  { borderColor: (selectedFeature?.color || "#3b82f6") + "66",
-                    backgroundColor: (selectedFeature?.color || "#3b82f6") + "18" }
-                ]}>
-                  <Text style={[styles.typeBadgeText, { color: selectedFeature?.color || "#3b82f6" }]}>
-                    {selectedFeature?.renderType === "polyline"
-                      ? "CANAL / RIVER PATH"
-                      : selectedFeature?.renderType === "polygon"
-                      ? "REGION / AREA"
-                      : "LOCATION POINT"}
-                  </Text>
-                </View>
-                <View style={styles.gisTag}>
-                  <MaterialCommunityIcons name="check-circle" size={14} color="#22c55e" />
-                  <Text style={styles.gisTagText}>Verified GIS Data</Text>
-                </View>
-              </View>
-
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-
-                {/* ✅ 1. Description - region.data[0].description se aata hai */}
-                {selectedFeature?.description ? (
-                  <View style={styles.infoCardSection}>
-                    <View style={styles.sectionLabelRow}>
-                      <MaterialCommunityIcons name="map-legend" size={15} color="#38bdf8" />
-                      <Text style={styles.sectionLabel}>About this Feature</Text>
-                    </View>
-                    <Text style={styles.descriptionText}>
-                      {selectedFeature.description}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {/* ✅ 2. Key Facts - region.facts se aata hai (semicolon split) */}
-                {selectedFeature?.facts ? (
-                  <View style={styles.infoCardSection}>
-                    <View style={styles.sectionLabelRow}>
-                      <MaterialCommunityIcons name="text-box-search-outline" size={15} color="#38bdf8" />
-                      <Text style={styles.sectionLabel}>Key Facts</Text>
-                    </View>
-                    {parseFacts(selectedFeature.facts).map((fact, idx) => (
-                      <View key={idx} style={styles.factItem}>
-                        <View style={[styles.factDot, { backgroundColor: selectedFeature?.color || "#3b82f6" }]} />
-                        <Text style={styles.factText}>{fact}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-
-                {/* ✅ 3. Syllabus Explanation Sections - apiResponse.explanation se */}
-                {apiResponse?.explanation &&
-                  parseExplanation(apiResponse.explanation).map((section, idx) => (
-                    <View key={idx} style={styles.infoCardSection}>
-                      <View style={styles.sectionLabelRow}>
-                        <View style={styles.sectionNumberBadge}>
-                          <Text style={styles.sectionNumberText}>{section.number}</Text>
-                        </View>
-                        <Text style={styles.sectionLabel}>{section.heading}</Text>
-                      </View>
-                      {section.body ? (
-                        <Text style={styles.descriptionText}>{section.body}</Text>
-                      ) : null}
-                    </View>
-                  ))}
-
-                {/* ✅ 4. Exam Tip */}
-                <View style={styles.tipBox}>
-                  <MaterialCommunityIcons name="lightbulb-on-outline" size={16} color="#f59e0b" />
-                  <Text style={styles.tipText}>
-                    Exam Tip: Use specific facts while answering 4-mark or 6-mark distribution analysis questions.
-                  </Text>
-                </View>
-              </ScrollView>
-
-              <Pressable
-                onPress={() => setSelectedFeature(null)}
-                style={({ pressed }) => [styles.modalCloseBtn, pressed && { opacity: 0.8 }]}
-              >
-                <Text style={styles.modalCloseBtnText}>GOT IT</Text>
-              </Pressable>
-            </LinearGradient>
-          </View>
-        </View>
-      </Modal>
+        onClose={closeFeatureModal}
+        syllabusSections={featureSections}
+        isLoadingDetail={isFeatureLoading}
+      />
     </LinearGradient>
   );
 }
@@ -454,11 +323,9 @@ const styles = StyleSheet.create({
   },
   resultHeading: {
     color: Colors.accent,
-    fontSize: 14,
-    fontWeight: "800",
-    textTransform: "uppercase",
+    ...Typography.sectionLabel,
   },
-  clearBtn: { color: Colors.accent, fontSize: 12, fontWeight: "700" },
+  clearBtn: { color: Colors.accent, ...Typography.buttonSmall },
   mapShell: {
     height: 300,
     borderRadius: 16,
@@ -467,146 +334,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  centerBox: { marginTop: 40, alignItems: "center", justifyContent: "center" },
-  loadingText: { color: Colors.white, marginTop: 10, fontSize: 14, opacity: 0.8 },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.82)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    width: "100%",
-    maxHeight: "85%",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: "hidden",
-  },
-  modalGradient: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 30,
-  },
-  dragHandle: {
-    width: 36,
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  modalTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  featureIconBg: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalTitle: { color: "#ffffff", fontSize: 22, fontWeight: "700", flex: 1 },
-  closeIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  typeBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 20,
-  },
-  typeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  typeBadgeText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
-  gisTag: { flexDirection: "row", alignItems: "center", gap: 6 },
-  gisTagText: { color: "#22c55e", fontSize: 13, fontWeight: "600" },
-  modalBody: { marginBottom: 16 },
-  infoCardSection: {
-    backgroundColor: "rgba(30, 41, 59, 0.7)",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
-  },
-  sectionLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 10,
-  },
-  sectionLabel: {
-    color: "#38bdf8",
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  sectionNumberBadge: {
-    backgroundColor: "#38bdf8",
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sectionNumberText: { color: "#0f172a", fontSize: 11, fontWeight: "800" },
-  descriptionText: { color: "#cbd5e1", fontSize: 14, lineHeight: 22 },
-  factItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    marginBottom: 10,
-  },
-  factDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 8,
-    flexShrink: 0,
-  },
-  factText: { color: "#e2e8f0", fontSize: 14, lineHeight: 22, flex: 1 },
-  tipBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    backgroundColor: "rgba(245,158,11,0.06)",
-    borderRadius: 12,
+  errorBox: {
+    marginTop: 20,
     padding: 14,
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.15)",
-    marginBottom: 6,
-  },
-  tipText: { color: "#fbbf24", fontSize: 13, lineHeight: 18, flex: 1 },
-  modalCloseBtn: {
-    backgroundColor: "#3b82f6",
     borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 10,
+    backgroundColor: Colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: "rgba(251, 113, 133, 0.35)",
   },
-  modalCloseBtnText: { color: "#ffffff", fontSize: 15, fontWeight: "700", letterSpacing: 0.5 },
-
-  // No Data
+  errorText: { color: Colors.danger, ...Typography.bodySmall, fontWeight: "600" },
   noDataCard: {
     marginTop: 30,
     backgroundColor: "rgba(255,255,255,0.05)",
@@ -619,15 +355,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(244,63,94,0.1)",
     justifyContent: "center", alignItems: "center", marginBottom: 20,
   },
-  noDataTitle: { color: Colors.white, fontSize: 20, fontWeight: "800", marginBottom: 10 },
+  noDataTitle: {
+    color: Colors.white,
+    ...Typography.screenTitle,
+    marginBottom: 10,
+  },
   noDataText: {
-    color: Colors.textSecondary, fontSize: 14, lineHeight: 22,
-    textAlign: "center", marginBottom: 24,
+    color: Colors.textSecondary,
+    ...Typography.bodySmall,
+    textAlign: "center",
+    marginBottom: 24,
   },
   retryBtn: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: 36, paddingVertical: 14,
-    borderRadius: 16, width: "80%", alignItems: "center",
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+    borderRadius: 16,
+    width: "80%",
+    alignItems: "center",
   },
-  retryBtnText: { color: Colors.white, fontSize: 15, fontWeight: "700" },
+  retryBtnText: { color: Colors.white, ...Typography.button },
 });

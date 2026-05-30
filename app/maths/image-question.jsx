@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
+import AppLoader from "../../components/shared/AppLoader";
 import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
@@ -152,10 +153,10 @@ export default function MathsImageQuestionScreen() {
             <View style={{ height: 10 }} />
 
             {isPending ? (
-              <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color={Colors.accent} />
-                <Text style={styles.loaderText}>Analyzing graph question...</Text>
-              </View>
+              <AppLoader
+                title="Analyzing your graph"
+                subtitle="Reading the image and preparing a solution…"
+              />
             ) : (
               <PrimaryButton
                 title={uri ? "Solve from image" : "Pick image first"}

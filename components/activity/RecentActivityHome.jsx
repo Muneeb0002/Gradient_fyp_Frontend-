@@ -1,12 +1,13 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import Colors from "../../constants/Colors";
 // Sahi named import yahan lagaya hai
 import { chatToSidebarItem, normalizeChats } from "../../lib/chatHistoryUtils";
 import useChatHistory from "../../src/hooks/useChatHistory.js";
 
+import AppLoader from "../shared/AppLoader";
 import ChatSidebarRow from "./ChatSidebarRow";
 
 
@@ -19,9 +20,11 @@ export default function RecentActivityHome() {
 
   if (isLoading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="small" color={Colors.accent} />
-      </View>
+      <AppLoader
+        compact
+        title="Loading chats"
+        subtitle="Fetching your recent conversations…"
+      />
     );
   }
 
@@ -72,7 +75,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  loading: { padding: 24, alignItems: "center" },
   emptyCard: {
     borderRadius: 16,
     padding: 22,

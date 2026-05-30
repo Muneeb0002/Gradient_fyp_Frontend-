@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View, ActivityIndicator } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import AppLoader from "../../components/shared/AppLoader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import InputField from "../../components/auth/InputField.jsx";
 import PrimaryButton from "../../components/auth/PrimaryButton";
@@ -106,9 +107,13 @@ export default function ForgotPasswordScreen() {
           />
         </View>
 
-        {isPending && (
-          <ActivityIndicator size="large" color={Colors.accent} style={{ marginTop: 20 }} />
-        )}
+        {isPending ? (
+          <AppLoader
+            compact
+            title="Sending OTP"
+            subtitle="Please wait while we verify your email…"
+          />
+        ) : null}
       </SafeAreaView>
     </LinearGradient>
   );

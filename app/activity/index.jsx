@@ -63,7 +63,10 @@ export default function RecentActivityScreen() {
       />
 
       {isLoading ? (
-        <ActivityLoading message="Loading chats…" />
+        <ActivityLoading
+          message="Loading chats"
+          subtitle="Fetching your conversation history…"
+        />
       ) : isError ? (
         <ActivityError
           message={error?.message || "Please check your connection."}

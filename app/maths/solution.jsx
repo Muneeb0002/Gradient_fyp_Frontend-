@@ -13,6 +13,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
+import AppLoader from "../../components/shared/AppLoader";
+import FullScreenLoader from "../../components/shared/FullScreenLoader";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
@@ -38,10 +40,10 @@ function StepConceptPanel({ conceptKey, onClose }) {
       </View>
 
       {isConceptLoading ? (
-        <ActivityIndicator
-          size="small"
-          color={Colors.accent}
-          style={{ marginTop: 10 }}
+        <AppLoader
+          inline
+          title="Loading concept"
+          subtitle="Fetching explanation…"
         />
       ) : conceptError ? (
         <Text style={styles.conceptError}>Could not load concept.</Text>
@@ -78,10 +80,10 @@ export default function SolutionScreen() {
 
   if (isPending) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={Colors.accent} />
-        <Text style={styles.loadingText}>AI is calculating steps...</Text>
-      </View>
+      <FullScreenLoader
+        title="Solving your question"
+        subtitle="AI is building step-by-step working…"
+      />
     );
   }
 

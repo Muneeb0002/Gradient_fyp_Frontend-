@@ -2,7 +2,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
+import AppLoader from "../../components/shared/AppLoader";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
@@ -138,12 +138,13 @@ export default function HistoryTheoryScreen() {
               </View>
 
               {/* ✅ Loading indicator */}
-              {isPending && (
-                <ActivityIndicator
-                  style={{ marginBottom: 10 }}
-                  color={Colors.accent}
+              {isPending ? (
+                <AppLoader
+                  compact
+                  title="Generating answer"
+                  subtitle="AI is preparing your model answer…"
                 />
-              )}
+              ) : null}
 
               <PrimaryButton
                 title={isPending ? "Generating..." : "Generate answer"}
