@@ -6,6 +6,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import StartupSplash from "../components/startup/StartupSplash";
 import Colors from "../constants/Colors";
+import { PortalStudentsProvider } from "../src/context/PortalStudentsContext";
 import "../global.css";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -17,14 +18,16 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <View style={styles.root}>
-          <Stack screenOptions={{ headerShown: false }} />
+      <PortalStudentsProvider>
+        <SafeAreaProvider>
+          <View style={styles.root}>
+            <Stack screenOptions={{ headerShown: false }} />
           {showSplash ? (
             <StartupSplash onFinish={() => setShowSplash(false)} />
           ) : null}
-        </View>
-      </SafeAreaProvider>
+          </View>
+        </SafeAreaProvider>
+      </PortalStudentsProvider>
     </QueryClientProvider>
   );
 }

@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { CommonActions } from "@react-navigation/native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useState } from "react";
 import { useScrollFieldIntoView } from "../../src/hooks/useScrollFieldIntoView.js";
@@ -21,7 +20,11 @@ import AppDecor from "../../components/shared/AppDecor";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
 import { getApiErrorMessage } from "../../lib/apiErrors";
-import { getProfile, saveProfile } from "../../lib/storage";
+import {
+  navigateAfterLogin,
+  persistPortalLogin,
+} from "../../lib/completePortalLogin";
+import { matchPortalLogin } from "../../lib/portalAuth";
 import { useLogin } from "../../src/hooks/useLogin.js";
 
 export default function LoginScreen() {
@@ -66,40 +69,34 @@ export default function LoginScreen() {
 
     setErrors({ email: "", password: "" });
 
-    mutate(formData, {
+    const trimmedEmail = formData.email.trim();
+    const trimmedPassword = formData.password;
+
+    const localSession = matchPortalLogin(trimmedEmail, trimmedPassword);
+    if (localSession) {
+      persistPortalLogin(localSession, trimmedEmail).then((role) => {
+        const name =
+          localSession.user?.firstName ||
+          localSession.user?.displayName?.split?.(" ")?.[0] ||
+          "User";
+        navigateAfterLogin(navigation, role, name);
+      });
+      return;
+    }
+
+    mutate(
+      {
+        email: trimmedEmail,
+        password: trimmedPassword,
+      },
+      {
       onSuccess: async (data) => {
-        const apiFirstName =
+        const role = await persistPortalLogin(data, trimmedEmail);
+        const firstNameToShow =
           data?.user?.firstName ||
-          data?.firstName ||
-          data?.user?.name?.split?.(" ")?.[0] ||
-          "";
-        const apiEmail =
-          data?.user?.email ||
-          data?.email ||
-          formData.email ||
-          "";
-        const profile = await getProfile();
-        const fallbackFirstName = profile?.displayName?.split(" ")?.[0] || "User";
-        const firstNameToShow = apiFirstName || fallbackFirstName;
-        // Save email + name to profile so Settings screen can display them
-        await saveProfile({
-          displayName: profile?.displayName || `${apiFirstName}`.trim() || "Student",
-          email: apiEmail || profile?.email || "",
-          photoUri: profile?.photoUri || "",
-        });
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [
-              {
-                name: "(tabs)",
-                params: {
-                  authMessage: `${firstNameToShow} login successful`,
-                },
-              },
-            ],
-          }),
-        );
+          data?.user?.displayName?.split?.(" ")?.[0] ||
+          "User";
+        navigateAfterLogin(navigation, role, firstNameToShow);
       },
       onError: (err) => {
         const errorMsg = getApiErrorMessage(err, "Login failed. Please try again.");
