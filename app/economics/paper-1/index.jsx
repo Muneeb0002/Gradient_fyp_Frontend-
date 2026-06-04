@@ -23,6 +23,7 @@ import SectionCard from "../../../components/shared/SectionCard";
 import ThemedMessageModal from "../../../components/shared/ThemedMessageModal";
 import Colors from "../../../constants/Colors";
 import { SAMPLE_MCQ_QUESTION } from "../../../constants/economicsSampleData";
+import { saveMcqSession } from "../../../lib/economicsMcqSession";
 
 const MODES = [
   { id: "text", label: "Text", icon: "format-text" },
@@ -57,7 +58,7 @@ export default function EconomicsPaperOneScreen() {
     }
   };
 
-  const handleExplain = () => {
+  const handleExplain = async () => {
     const hasText = !!question.trim();
     const hasImage = !!imageUri;
 
@@ -84,16 +85,15 @@ export default function EconomicsPaperOneScreen() {
     }
 
     setLoading(true);
+    await saveMcqSession({
+      question: question.trim(),
+      mode,
+      imageUri: hasImage ? imageUri : "",
+    });
+
     setTimeout(() => {
       setLoading(false);
-      router.push({
-        pathname: "/economics/paper-1/result",
-        params: {
-          question: question.trim() || SAMPLE_MCQ_QUESTION,
-          mode,
-          hasImage: hasImage ? "1" : "0",
-        },
-      });
+      router.push("/economics/paper-1/result");
     }, 900);
   };
 
@@ -194,6 +194,13 @@ export default function EconomicsPaperOneScreen() {
             )}
 
             <View style={styles.submitWrap}>
+              {loading ? (
+                <AppLoader
+                  compact
+                  title="Analysing MCQ"
+                  subtitle="Examiner is reviewing your question…"
+                />
+              ) : null}
               <PrimaryButton
                 title={loading ? "Analysing…" : "Explain MCQ"}
                 handlePress={handleExplain}
@@ -202,8 +209,6 @@ export default function EconomicsPaperOneScreen() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-
-        <AppLoader visible={loading} message="Examiner is reviewing your MCQ…" />
 
         <ThemedMessageModal
           visible={!!dialog}
