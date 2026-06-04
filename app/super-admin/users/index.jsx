@@ -93,7 +93,7 @@ export default function SuperAdminUsersScreen() {
   return (
     <AdminScreenShell scroll={false} contentStyle={styles.shell}>
       <PortalPageHeader
-        onBack={() => router.back()}
+        onBack={() => router.replace("/super-admin")}
         title="Students"
         subtitle={`${students.length} registered · ${verifiedCount} verified`}
         icon="school"

@@ -92,7 +92,7 @@ export default function SuperAdminAdminsScreen() {
         subtitle="Manage platform administrators"
         icon="account-tie"
         accent="#FBBF24"
-        onBack={() => router.back()}
+        onBack={() => router.replace("/super-admin")}
         rightAction={
           <Pressable
             onPress={() => router.push("/super-admin/admins/create")}

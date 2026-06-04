@@ -77,7 +77,7 @@ export default function SuperAdminHistoryScreen() {
   return (
     <AdminScreenShell scroll={false} contentStyle={styles.shell}>
       <PortalPageHeader
-        onBack={() => router.back()}
+        onBack={() => router.replace("/super-admin")}
         title="Chat history"
         subtitle="All learning conversations"
         icon="message-text"

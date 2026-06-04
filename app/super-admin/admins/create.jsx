@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import InputField from "../../../components/auth/InputField";
 import PrimaryButton from "../../../components/auth/PrimaryButton";
@@ -34,6 +35,15 @@ export default function CreateAdminScreen() {
   const { showAlert, AlertModal } = usePortalAlert();
   const [submitting, setSubmitting] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      setStep(0);
+      setForm({ firstName: "", lastName: "", email: "", password: "" });
+      setErrors({});
+      setSubmitting(false);
+    }, []),
+  );
+
   const validateStep = (index = step) => {
     const next = {};
     if (index === 0) {
@@ -66,9 +76,7 @@ export default function CreateAdminScreen() {
       setSubmitting(false);
       const name = `${form.firstName} ${form.lastName}`;
       const { title, message } = PORTAL_ALERTS.adminCreated(name);
-      showAlert(title, message, "Done", () =>
-        router.replace("/super-admin/admins"),
-      );
+      showAlert(title, message, "Done", () => router.back());
     }, 500);
   };
 
