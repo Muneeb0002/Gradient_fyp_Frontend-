@@ -141,7 +141,7 @@ export default function CreateAdminScreen() {
         <SectionCard label="Login credentials" icon="lock-outline">
           <InputField
             label="Work email"
-            placeholder="name@gmail.com"
+            placeholder="name@gradient.com"
             value={form.email}
             onChangeText={(t) => {
               setForm((f) => ({ ...f, email: t }));
@@ -164,7 +164,7 @@ export default function CreateAdminScreen() {
             error={errors.password}
           />
           <Text style={styles.hint}>
-            Use a @gmail.com address. Password: minimum 8 characters and one special
+            Use a @gradient.com address. Password: minimum 8 characters and one special
             character (@$!%*?&), same as student sign up.
           </Text>
         </SectionCard>

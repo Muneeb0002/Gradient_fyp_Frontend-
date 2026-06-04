@@ -1,14 +1,14 @@
 export const ADMIN_PROFILE = {
   firstName: "Portal",
   lastName: "Admin",
-  email: "admin1@gmail.com",
+  email: "admin1@gradient.com",
   role: "admin",
   joinedAt: "1 Jun 2025",
 };
 
 export const SUPER_ADMIN_PROFILE = {
   displayName: "Super Administrator",
-  email: "Gradiant@gmail.com",
+  email: "Gradiant@gradient.com",
   role: "super-admin",
 };
 
@@ -30,14 +30,14 @@ export const MOCK_ADMINS = [
     id: "1",
     firstName: "Portal",
     lastName: "Admin",
-    email: "admin1@gmail.com",
+    email: "admin1@gradient.com",
     createdAt: "1 Jun 2025",
   },
   {
     id: "1b",
     firstName: "Second",
     lastName: "Admin",
-    email: "Sadmin@gmail.com",
+    email: "Sadmin@gradient.com",
     createdAt: "12 Jan 2025",
   },
   {
