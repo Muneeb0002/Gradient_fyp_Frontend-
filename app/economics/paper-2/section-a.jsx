@@ -20,6 +20,7 @@ import SectionCard from "../../../components/shared/SectionCard";
 import ThemedMessageModal from "../../../components/shared/ThemedMessageModal";
 import Colors from "../../../constants/Colors";
 import { savePaper2Session } from "../../../lib/economicsPaper2Session";
+import { openSubjectResult } from "../../../lib/subjectNavigation";
 
 const MAX_IMAGES = 3;
 
@@ -81,7 +82,7 @@ export default function EconomicsPaperTwoSectionAScreen() {
 
     setTimeout(() => {
       setLoading(false);
-      router.push("/economics/paper-2/result");
+      openSubjectResult(router, "/economics/paper-2/result");
     }, 900);
   };
 

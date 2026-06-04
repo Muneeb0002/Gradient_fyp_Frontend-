@@ -7,8 +7,10 @@ import MathImageStepList from "../../components/math/MathImageStepList";
 import MathSvgPreview from "../../components/math/MathSvgPreview";
 import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
+import SubjectResultActions from "../../components/shared/SubjectResultActions";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
+import { backToSubjectHub } from "../../lib/subjectNavigation";
 import { formatRawQuestion } from "../../lib/mathQuestionText";
 
 function decodeUriParam(value) {
@@ -23,7 +25,10 @@ function decodeUriParam(value) {
 
 export default function MathsImageSolutionScreen() {
   const router = useRouter();
-  const { sourceImageUri, apiData } = useLocalSearchParams();
+  const { sourceImageUri, apiData, inputPath } = useLocalSearchParams();
+  const rawInput = Array.isArray(inputPath) ? inputPath[0] : inputPath;
+  const returnInput =
+    typeof rawInput === "string" && rawInput.length ? rawInput : "/maths/image-question";
 
   // ✅ Fallback validation agar galti se data na aaye to screen crash na ho
   let data = null;
@@ -71,7 +76,7 @@ export default function MathsImageSolutionScreen() {
           contentContainerStyle={styles.scroll}
         >
           <ScreenHeader
-            onBack={() => router.back()}
+            onBack={() => backToSubjectHub(router, "maths")}
             title="Solution"
             subtitle="Worked answer — show these steps in your exam."
             icon="lightbulb-on-outline"
@@ -142,6 +147,12 @@ export default function MathsImageSolutionScreen() {
               {data.final_answer || "N/A"}
             </Text>
           </LinearGradient>
+
+          <SubjectResultActions
+            subject="maths"
+            inputHref={returnInput}
+            anotherTitle="Solve Another Question"
+          />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

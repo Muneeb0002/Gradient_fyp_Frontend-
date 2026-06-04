@@ -88,7 +88,6 @@ export default function WelcomeScreen() {
             title="Login"
             handlePress={() => router.push("/auth/login")}
           />
-
           <SecondaryButton
             title="Sign Up"
             handlePress={() => router.push("/auth/signup")}

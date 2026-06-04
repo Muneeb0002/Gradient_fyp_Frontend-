@@ -13,14 +13,24 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import HistoryAnswerCard from "../../components/history/HistoryAnswerCard";
 import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
+import SubjectResultActions from "../../components/shared/SubjectResultActions";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
+import { backToSubjectHub } from "../../lib/subjectNavigation";
 
 export default function HistorySolutionScreen() {
   const router = useRouter();
 
-  const { marks, imageCount, mode, answer, question, sourceImageUri } =
+  const { marks, imageCount, mode, answer, question, sourceImageUri, inputPath } =
     useLocalSearchParams();
+
+  const rawInput = Array.isArray(inputPath) ? inputPath[0] : inputPath;
+  const returnInput =
+    typeof rawInput === "string" && rawInput.length
+      ? rawInput
+      : mode === "image"
+        ? "/history/image"
+        : "/history/theory";
 
   const modeValue = mode === "image" ? "image" : "theory";
   const modeLabel = modeValue === "image" ? "Image-based" : "Theory-based";
@@ -63,7 +73,7 @@ export default function HistorySolutionScreen() {
           contentContainerStyle={styles.scroll}
         >
           <ScreenHeader
-            onBack={() => router.back()}
+            onBack={() => backToSubjectHub(router, "history")}
             title="Model answer"
             subtitle={`${modeLabel} · Target: ${marks ?? "?"} marks${
               imageCount && Number(imageCount) > 0
@@ -108,9 +118,15 @@ export default function HistorySolutionScreen() {
             <HistoryAnswerCard
               marks={marks}
               mode={modeValue}
-              answer={cleanAnswer}   // ✅ FIXED HERE
+              answer={cleanAnswer}
             />
           </View>
+
+          <SubjectResultActions
+            subject="history"
+            inputHref={returnInput}
+            anotherTitle="Ask Another Question"
+          />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

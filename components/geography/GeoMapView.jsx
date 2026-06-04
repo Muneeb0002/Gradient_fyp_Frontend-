@@ -1,8 +1,28 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import MapView, { Marker, Polygon, Polyline } from "react-native-maps";
 import Colors from "../../constants/Colors";
 
+function FeatureLabel({ feature, isSelected }) {
+  return (
+    <View style={[styles.labelContainer, isSelected && styles.selectedLabelContainer]}>
+      <Text
+        style={[
+          styles.labelText,
+          { color: isSelected ? Colors.primary : feature.color || Colors.accent },
+          isSelected && { fontSize: 10, fontWeight: "900" },
+        ]}
+      >
+        {feature.label}
+      </Text>
+    </View>
+  );
+}
+
 export default function GeoMapView({ rivers, onFeaturePress, selectedFeatureId }) {
+  const handlePress = (feature) => {
+    if (onFeaturePress) onFeaturePress(feature);
+  };
+
   return (
     <MapView
       style={{ width: "100%", height: 250, borderRadius: 10 }}
@@ -13,41 +33,66 @@ export default function GeoMapView({ rivers, onFeaturePress, selectedFeatureId }
         longitudeDelta: 10,
       }}
     >
-      {rivers.map((river, index) => {
-        const isSelected = selectedFeatureId === river.label;
-        return (
-          <View key={`river-group-${index}`}>
-            {/* 1. Ye line draw karega */}
-            <Polyline
-              coordinates={river.coords}
-              strokeColor={isSelected ? Colors.accent : river.color}
-              strokeWidth={isSelected ? 6 : 3}
-              tappable={true}
-              onPress={() => onFeaturePress && onFeaturePress(river)}
-            />
+      {rivers.map((feature, index) => {
+        const isSelected = selectedFeatureId === feature.label;
+        const key = `feature-${feature.label}-${index}`;
 
-            {/* 2. Ye river ka naam likhega (Start point par) */}
-            {river.coords.length > 0 && (
-              <Marker
-                coordinate={river.coords[0]} // Pehle coordinate par label dikhayega
-                tappable={true}
-                onPress={() => onFeaturePress && onFeaturePress(river)}
-              >
-                {/* Custom Label Styling */}
-                <View style={[
-                  styles.labelContainer,
-                  isSelected && styles.selectedLabelContainer
-                ]}>
-                  <Text style={[
-                    styles.labelText, 
-                    { color: isSelected ? Colors.primary : river.color },
-                    isSelected && { fontSize: 10, fontWeight: "900" }
-                  ]}>
-                    {river.label}
-                  </Text>
-                </View>
-              </Marker>
-            )}
+        if (feature.renderType === "polygon" && feature.coords?.length >= 3) {
+          const fill = (feature.color || Colors.accent) + "55";
+          return (
+            <View key={key}>
+              <Polygon
+                coordinates={feature.coords}
+                strokeColor={isSelected ? Colors.accent : feature.color || Colors.accent}
+                fillColor={fill}
+                strokeWidth={isSelected ? 3 : 2}
+                tappable
+                onPress={() => handlePress(feature)}
+              />
+              {feature.centerCoord ? (
+                <Marker
+                  coordinate={feature.centerCoord}
+                  tappable
+                  onPress={() => handlePress(feature)}
+                >
+                  <FeatureLabel feature={feature} isSelected={isSelected} />
+                </Marker>
+              ) : null}
+            </View>
+          );
+        }
+
+        if (feature.renderType === "marker" && feature.coords?.length > 0) {
+          return (
+            <Marker
+              key={key}
+              coordinate={feature.coords[0]}
+              tappable
+              onPress={() => handlePress(feature)}
+            >
+              <FeatureLabel feature={feature} isSelected={isSelected} />
+            </Marker>
+          );
+        }
+
+        if (!feature.coords?.length) return null;
+
+        return (
+          <View key={key}>
+            <Polyline
+              coordinates={feature.coords}
+              strokeColor={isSelected ? Colors.accent : feature.color}
+              strokeWidth={isSelected ? 6 : 3}
+              tappable
+              onPress={() => handlePress(feature)}
+            />
+            <Marker
+              coordinate={feature.coords[0]}
+              tappable
+              onPress={() => handlePress(feature)}
+            >
+              <FeatureLabel feature={feature} isSelected={isSelected} />
+            </Marker>
           </View>
         );
       })}
@@ -55,39 +100,18 @@ export default function GeoMapView({ rivers, onFeaturePress, selectedFeatureId }
   );
 }
 
-// const styles = StyleSheet.create({
-//   labelContainer: {
-//     backgroundColor: "rgba(255, 255, 255, 0.8)",
-//     // paddingHorizontal: 0.3,
-//     paddingVertical: 3,
-//     borderRadius: 4,
-//     borderWidth: 1,
-//     borderColor: "#ccc",
-//   },
-//   labelText: {
-//     fontSize: 6,
-//     fontWeight: "bold",
-//   },
-// });
-
-
 const styles = StyleSheet.create({
   labelContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)", // Thora zyada solid taake map ke upar saaf dikhe
-    // paddingHorizontal: 6, // Text ke side par thori jagah
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)", // Light border
-    
-    // Sabse important lines:
-    alignSelf: 'flex-start', // Ye container ko sirf text jitni width dega
-    minWidth: 60,           // Kam se kam itni width ho
-    alignItems: 'center',
-    justifyContent: 'center',
-    
-    // Shadow (Optional: Taake label utha hua dikhe)
+    borderColor: "rgba(0,0,0,0.1)",
+    alignSelf: "flex-start",
+    minWidth: 60,
+    alignItems: "center",
+    justifyContent: "center",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -105,9 +129,9 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.1 }],
   },
   labelText: {
-    fontSize: 8,            // 6 bohot chota tha, 8 readable haii
-    fontWeight: "800",      // Extra bold for O Level GIS look
-    textAlign: 'center',
-    includeFontPadding: false, // Android par extra space khatam karne ke liye
+    fontSize: 8,
+    fontWeight: "800",
+    textAlign: "center",
+    includeFontPadding: false,
   },
 });

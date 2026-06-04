@@ -19,6 +19,7 @@ import QuestionInput from "../../components/shared/QuestionInput";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
+import { openSubjectResult } from "../../lib/subjectNavigation";
 import { useAskAI } from "../../src/hooks/useAskAI.js";
 
 export default function HistoryTheoryScreen() {
@@ -54,13 +55,14 @@ export default function HistoryTheoryScreen() {
       const result = await mutateAsync({ query: prompt, marks: marks });
 
       // ✅ Answer ke sath solution page pe jao
-      router.push({
+      openSubjectResult(router, {
         pathname: "/history/solution",
         params: {
           question: question,
           marks: String(marks),
           mode: "theory",
           answer: result?.answer || result?.response || JSON.stringify(result),
+          inputPath: "/history/theory",
         },
       });
     } catch (error) {

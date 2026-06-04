@@ -5,15 +5,16 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import PrimaryButton from "../../../components/auth/PrimaryButton";
 import McqResultView from "../../../components/economics/McqResultView";
 import AppDecor from "../../../components/shared/AppDecor";
 import ScreenHeader from "../../../components/shared/ScreenHeader";
+import SubjectResultActions from "../../../components/shared/SubjectResultActions";
 import SectionCard from "../../../components/shared/SectionCard";
 import Colors from "../../../constants/Colors";
 import Typography from "../../../constants/Typography";
 import { SAMPLE_MCQ_RESULT } from "../../../constants/economicsSampleData";
 import { getMcqSession } from "../../../lib/economicsMcqSession";
+import { backToSubjectHub } from "../../../lib/subjectNavigation";
 
 export default function EconomicsPaperOneResultScreen() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function EconomicsPaperOneResultScreen() {
           contentContainerStyle={styles.scroll}
         >
           <ScreenHeader
-            onBack={() => router.back()}
+            onBack={() => backToSubjectHub(router, "economics")}
             title="MCQ explained"
             subtitle={`Paper 1 · ${modeLabel}`}
             icon="check-decagram-outline"
@@ -93,16 +94,11 @@ export default function EconomicsPaperOneResultScreen() {
             <McqResultView result={SAMPLE_MCQ_RESULT} />
           </View>
 
-          <View style={styles.actions}>
-            <PrimaryButton
-              title="Explain another MCQ"
-              handlePress={() => router.replace("/economics/paper-1")}
-            />
-            <PrimaryButton
-              title="Back to Economics"
-              handlePress={() => router.replace("/economics")}
-            />
-          </View>
+          <SubjectResultActions
+            subject="economics"
+            inputHref="/economics/paper-1"
+            anotherTitle="Explain Another MCQ"
+          />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -146,9 +142,5 @@ const styles = StyleSheet.create({
   },
   resultWrap: {
     marginTop: 8,
-  },
-  actions: {
-    marginTop: 20,
-    gap: 4,
   },
 });

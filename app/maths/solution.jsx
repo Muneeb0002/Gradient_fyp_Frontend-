@@ -13,11 +13,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../components/auth/PrimaryButton";
 import AppDecor from "../../components/shared/AppDecor";
+import SubjectResultActions from "../../components/shared/SubjectResultActions";
 import AppLoader from "../../components/shared/AppLoader";
 import FullScreenLoader from "../../components/shared/FullScreenLoader";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
+import { backToSubjectHub } from "../../lib/subjectNavigation";
 import { useConcept } from "../../src/hooks/useConceptKey.js";
 import { useMathSolver } from "../../src/hooks/useMathSolver";
 
@@ -62,7 +64,10 @@ function StepConceptPanel({ conceptKey, onClose }) {
 
 export default function SolutionScreen() {
   const router = useRouter();
-  const { query, marks } = useLocalSearchParams();
+  const { query, marks, inputPath } = useLocalSearchParams();
+  const rawInput = Array.isArray(inputPath) ? inputPath[0] : inputPath;
+  const returnInput =
+    typeof rawInput === "string" && rawInput.length ? rawInput : "/maths/numerical";
   const [selectedKey, setSelectedKey] = useState(null);
 
   const { mutate, data, isPending, isError, error: solverError } = useMathSolver();
@@ -93,7 +98,7 @@ export default function SolutionScreen() {
         <Text style={styles.errorText}>
           Oops! {solverError?.message || "Failed to solve"}
         </Text>
-        <PrimaryButton title="Try Again" handlePress={() => router.back()} />
+        <PrimaryButton title="Try Again" handlePress={() => router.replace(returnInput)} />
       </View>
     );
   }
@@ -114,7 +119,7 @@ export default function SolutionScreen() {
           contentContainerStyle={styles.scroll}
         >
           <ScreenHeader
-            onBack={() => router.back()}
+            onBack={() => backToSubjectHub(router, "maths")}
             title="Solution"
             subtitle="Worked answer — show these steps in your exam."
             icon="lightbulb-on-outline"
@@ -195,6 +200,12 @@ export default function SolutionScreen() {
                 <Text style={styles.answerLabel}>Final answer</Text>
                 <Text style={styles.answerValue}>{data.final_answer}</Text>
               </LinearGradient>
+
+              <SubjectResultActions
+                subject="maths"
+                inputHref={returnInput}
+                anotherTitle="Solve Another Question"
+              />
             </View>
           )}
         </ScrollView>

@@ -22,6 +22,7 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import useHistoryImageTheory from "../../src/hooks/useHistoryImageTheory";
 
 import Colors from "../../constants/Colors";
+import { openSubjectResult } from "../../lib/subjectNavigation";
 
 const MAX_IMAGES = 1;
 
@@ -115,7 +116,7 @@ export default function HistoryImageScreen() {
             response?.result ||
             "No answer generated";
 
-          router.push({
+          openSubjectResult(router, {
             pathname: "/history/solution",
             params: {
               marks: String(marks),
@@ -123,6 +124,7 @@ export default function HistoryImageScreen() {
               imageCount: String(images.length),
               sourceImageUri: encodeURIComponent(images[0].uri),
               answer: finalAnswer,
+              inputPath: "/history/image",
             },
           });
         },

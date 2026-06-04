@@ -24,6 +24,7 @@ import ThemedMessageModal from "../../../components/shared/ThemedMessageModal";
 import Colors from "../../../constants/Colors";
 import { SAMPLE_PAPER2_SECTION_B_QUERY } from "../../../constants/economicsSampleData";
 import { savePaper2Session } from "../../../lib/economicsPaper2Session";
+import { openSubjectResult } from "../../../lib/subjectNavigation";
 
 const MODES = [
   { id: "text", label: "Text", icon: "format-text" },
@@ -89,7 +90,7 @@ export default function EconomicsPaperTwoSectionBScreen() {
 
     setTimeout(() => {
       setLoading(false);
-      router.push("/economics/paper-2/result");
+      openSubjectResult(router, "/economics/paper-2/result");
     }, 900);
   };
 

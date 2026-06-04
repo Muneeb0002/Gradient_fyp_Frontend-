@@ -5,15 +5,16 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import PrimaryButton from "../../../components/auth/PrimaryButton";
 import Paper2ResultView from "../../../components/economics/Paper2ResultView";
 import AppDecor from "../../../components/shared/AppDecor";
 import ScreenHeader from "../../../components/shared/ScreenHeader";
+import SubjectResultActions from "../../../components/shared/SubjectResultActions";
 import SectionCard from "../../../components/shared/SectionCard";
 import Colors from "../../../constants/Colors";
 import Typography from "../../../constants/Typography";
 import { getPaper2ResultForSection } from "../../../constants/economicsSampleData";
 import { getPaper2Session } from "../../../lib/economicsPaper2Session";
+import { backToSubjectHub } from "../../../lib/subjectNavigation";
 
 export default function EconomicsPaperTwoResultScreen() {
   const router = useRouter();
@@ -41,6 +42,8 @@ export default function EconomicsPaperTwoResultScreen() {
 
   const showQuery = !!query.trim() && section === "B" && inputMode === "text";
   const showImages = imageUris.length > 0;
+  const inputHref =
+    section === "B" ? "/economics/paper-2/section-b" : "/economics/paper-2/section-a";
 
   return (
     <LinearGradient
@@ -54,7 +57,7 @@ export default function EconomicsPaperTwoResultScreen() {
           contentContainerStyle={styles.scroll}
         >
           <ScreenHeader
-            onBack={() => router.back()}
+            onBack={() => backToSubjectHub(router, "economics")}
             title="Paper 2 explained"
             subtitle={`Section ${section} · ${modeLabel}`}
             icon="check-decagram-outline"
@@ -110,20 +113,11 @@ export default function EconomicsPaperTwoResultScreen() {
             <Paper2ResultView result={result} />
           </View>
 
-          <View style={styles.actions}>
-            <PrimaryButton
-              title="Answer another question"
-              handlePress={() =>
-                router.replace(
-                  section === "B" ? "/economics/paper-2/section-b" : "/economics/paper-2/section-a",
-                )
-              }
-            />
-            <PrimaryButton
-              title="Back to Economics"
-              handlePress={() => router.replace("/economics")}
-            />
-          </View>
+          <SubjectResultActions
+            subject="economics"
+            inputHref={inputHref}
+            anotherTitle="Answer Another Question"
+          />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -188,9 +182,5 @@ const styles = StyleSheet.create({
   },
   resultWrap: {
     marginTop: 8,
-  },
-  actions: {
-    marginTop: 20,
-    gap: 4,
   },
 });

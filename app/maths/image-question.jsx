@@ -22,6 +22,7 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
+import { openSubjectResult } from "../../lib/subjectNavigation";
 import useGraphAnalysis from "../../src/hooks/useMathsGraphAnalysis";
 
 export default function MathsImageQuestionScreen() {
@@ -68,11 +69,12 @@ export default function MathsImageQuestionScreen() {
       {
         onSuccess: (apiResponse) => {
           // ✅ API ka data router ke params mein stringify karke solution screen par forward kar diya
-          router.push({
+          openSubjectResult(router, {
             pathname: "/maths/solution-image",
             params: {
               sourceImageUri: encodeURIComponent(uri),
               apiData: JSON.stringify(apiResponse),
+              inputPath: "/maths/image-question",
               ...(note.trim() ? { note: note.trim() } : {}),
             },
           });

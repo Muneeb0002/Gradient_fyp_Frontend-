@@ -17,6 +17,7 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
+import { openSubjectResult } from "../../lib/subjectNavigation";
 
 const MARK_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -54,12 +55,13 @@ export default function MathsNumericalScreen() {
     setMarksError(false);
     setDialog(null);
 
-    router.push({
+    openSubjectResult(router, {
       pathname: "/maths/solution",
-      params: { 
-        query: query.trim(), 
-        marks: marks.toString() 
-      }
+      params: {
+        query: query.trim(),
+        marks: marks.toString(),
+        inputPath: "/maths/numerical",
+      },
     });
   };
 

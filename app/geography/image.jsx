@@ -21,6 +21,7 @@ import AppLoader from "../../components/shared/AppLoader";
 import ScreenHeader from "../../components/shared/ScreenHeader";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
+import { openSubjectResult } from "../../lib/subjectNavigation";
 import { useGeographyAnalyzeImage } from "../../src/hooks/useGeographyAnalyzeImage.js";
 
 const MAX_IMAGES = 1;
@@ -84,18 +85,17 @@ export default function GeographyImageScreen() {
       const finalAnswer = responseData?.answer;
 
       if (finalAnswer) {
-        router.push({
+        openSubjectResult(router, {
           pathname: "/geography/solution",
           params: {
             answer: finalAnswer,
-            // Backend agar marks bhej raha hai toh wo use karein, warna default 4
-            marks: String(responseData?.marks || "4"), 
+            marks: String(responseData?.marks || "4"),
             image: images[0],
             mode: "image",
             queryType: "analysis",
             question: "Image Analysis",
-            // Agar features hain toh pass karein, warna khali array
             features: JSON.stringify(responseData?.features || []),
+            inputPath: "/geography/image",
           },
         });
       } else {

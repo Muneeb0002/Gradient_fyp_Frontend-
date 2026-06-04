@@ -24,6 +24,7 @@ import ThemedMessageModal from "../../../components/shared/ThemedMessageModal";
 import Colors from "../../../constants/Colors";
 import { SAMPLE_MCQ_QUESTION } from "../../../constants/economicsSampleData";
 import { saveMcqSession } from "../../../lib/economicsMcqSession";
+import { openSubjectResult } from "../../../lib/subjectNavigation";
 
 const MODES = [
   { id: "text", label: "Text", icon: "format-text" },
@@ -93,7 +94,7 @@ export default function EconomicsPaperOneScreen() {
 
     setTimeout(() => {
       setLoading(false);
-      router.push("/economics/paper-1/result");
+      openSubjectResult(router, "/economics/paper-1/result");
     }, 900);
   };
 

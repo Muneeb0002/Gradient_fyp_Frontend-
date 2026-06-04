@@ -23,7 +23,7 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
-
+import { openSubjectResult } from "../../lib/subjectNavigation";
 import { useGeographyTheoryData } from "../../src/hooks/useGeographyTheoryData.js";
 const MAX_IMAGES = 1;
 
@@ -83,15 +83,15 @@ onSuccess: (res) => {
   const finalAnswer = res.data?.explanation; 
 
   if (finalAnswer) {
-    router.push({
+    openSubjectResult(router, {
       pathname: "/geography/solution",
       params: {
-        answer: finalAnswer, // Yahan string jaani chahiye
+        answer: finalAnswer,
         marks: String(marks),
         mode: "theory",
         question: question.trim(),
-        // features agar bhejne hain toh stringify karke:
         features: JSON.stringify(res.data?.features || []),
+        inputPath: "/geography/theory",
       },
     });
   } else {

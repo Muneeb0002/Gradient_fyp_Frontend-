@@ -9,13 +9,23 @@ import GeoMap from "../../components/geography/GeoMap";
 import HistoryAnswerCard from "../../components/history/HistoryAnswerCard";
 import AppDecor from "../../components/shared/AppDecor";
 import ScreenHeader from "../../components/shared/ScreenHeader";
+import SubjectResultActions from "../../components/shared/SubjectResultActions";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
+import { backToSubjectHub } from "../../lib/subjectNavigation";
 
 export default function GeographySolution() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { answer, marks, imageCount, mode, queryType } = params;
+  const { answer, marks, imageCount, mode, queryType, inputPath } = params;
+
+  const rawInput = Array.isArray(inputPath) ? inputPath[0] : inputPath;
+  const returnInput =
+    typeof rawInput === "string" && rawInput.length
+      ? rawInput
+      : mode === "image"
+        ? "/geography/image"
+        : "/geography/theory";
 
   const questionRaw = params.question;
   const question =
@@ -63,7 +73,7 @@ export default function GeographySolution() {
           contentContainerStyle={styles.scroll}
         >
           <ScreenHeader
-            onBack={() => router.back()}
+            onBack={() => backToSubjectHub(router, "geography")}
             title="Geography Solution"
             subtitle={
               modeValue
@@ -143,6 +153,12 @@ export default function GeographySolution() {
               answer={answer}
             />
           )}
+
+          <SubjectResultActions
+            subject="geography"
+            inputHref={returnInput}
+            anotherTitle="Ask Another Question"
+          />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

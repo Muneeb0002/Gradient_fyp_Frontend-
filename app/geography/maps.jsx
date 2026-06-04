@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GeoAnswerCard from "../../components/geography/GeoAnswerCard";
@@ -14,9 +14,8 @@ import ScreenHeader from "../../components/shared/ScreenHeader";
 import SectionCard from "../../components/shared/SectionCard";
 import Colors from "../../constants/Colors";
 import Typography from "../../constants/Typography";
-import { extractAiAnswer } from "../../lib/aiResponse";
 import { parseGeoSyllabusSections } from "../../lib/parseGeoExplanation";
-import { askAIFunction } from "../../src/history.api.js/askAIFunction";
+import { geographyTheoryDataApi } from "../../src/geographyApi/geographyTheoryDataApi";
 import useMapQuery from "../../src/hooks/useGeographyMapQuery.js";
 
 export default function GeographyMapsScreen() {
@@ -26,6 +25,7 @@ export default function GeographyMapsScreen() {
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [featureSections, setFeatureSections] = useState([]);
   const [isFeatureLoading, setIsFeatureLoading] = useState(false);
+  const autoOpenedRef = useRef(false);
 
   const {
     data: apiResponse,
@@ -55,6 +55,8 @@ export default function GeographyMapsScreen() {
       setSearchQuery(normalized);
       setShowResult(true);
       setSelectedFeature(null);
+      setFeatureSections([]);
+      autoOpenedRef.current = false;
     }
   };
 
@@ -121,6 +123,7 @@ export default function GeographyMapsScreen() {
       description: point.description || "",
       rawCoordinates: point.data.map((p) => p.coordinates ?? p),
       icon: point.icon,
+      popup_sections: point.popup_sections || [],
     })) || []),
 
     ...(apiResponse?.paths?.map((path) => ({
@@ -131,6 +134,7 @@ export default function GeographyMapsScreen() {
       facts: path.facts || path.description || "",
       description: path.description || "",
       rawCoordinates: path.data,
+      popup_sections: path.popup_sections || [],
     })) || []),
 
     ...(apiResponse?.regions?.map((region) => {
@@ -151,38 +155,64 @@ export default function GeographyMapsScreen() {
         description: regionDescription,
         rawCoordinates: allRawCoords,
         centerCoord: getCenterCoord(allRawCoords),
+        popup_sections: region.popup_sections || [],
       };
     }) || []),
   ];
 
-  const handleFeaturePress = async (feature) => {
-    setSelectedFeature(feature);
-    setFeatureSections([]);
-    setIsFeatureLoading(true);
+  const hasPopupSections = (sections) =>
+    Array.isArray(sections) &&
+    sections.filter((s) => s?.body?.trim()).length >= 2;
 
-    const fallbackSections = apiResponse?.explanation
-      ? parseGeoSyllabusSections(apiResponse.explanation)
-      : [];
+  const handleFeaturePress = useCallback(
+    async (feature) => {
+      if (!feature) return;
 
-    try {
-      const prompt = `You are a Cambridge O Level Geography (2217) tutor. Write a focused breakdown for "${feature.label}" in Pakistan only.
+      setSelectedFeature(feature);
+      setFeatureSections([]);
+      setIsFeatureLoading(true);
 
-Structure exactly as four parts:
-### [1] Curriculum Context:
-### [2] Regional/Physical Analysis:
-### [3] Significance:
-### [4] Tutor Wisdom:`;
+      if (hasPopupSections(feature.popup_sections)) {
+        setFeatureSections(feature.popup_sections);
+        setIsFeatureLoading(false);
+        return;
+      }
 
-      const response = await askAIFunction({ query: prompt, marks: 4 });
-      const answer = extractAiAnswer(response);
-      const parsed = answer ? parseGeoSyllabusSections(answer) : [];
-      setFeatureSections(parsed.length > 0 ? parsed : fallbackSections);
-    } catch {
-      setFeatureSections(fallbackSections);
-    } finally {
-      setIsFeatureLoading(false);
-    }
-  };
+      const fallbackSections = apiResponse?.explanation
+        ? parseGeoSyllabusSections(apiResponse.explanation)
+        : [];
+
+      try {
+        const prompt = `You are a Cambridge O Level Geography (2217/2059) tutor. Write ONLY about "${feature.label}" in Pakistan. Do not mention other rivers, provinces, or features.
+
+Structure exactly as four parts, written as a proper exam-style answer worth 4 marks (1 mark per point). Start the detailed explanation immediately after the number without any header or prefix:
+[1] [Detailed Cambridge-style statement explaining physical & geographical features]
+[2] [Detailed Cambridge-style statement explaining climate, soil & resources]
+[3] [Detailed Cambridge-style statement explaining agricultural & economic significance]
+[4] [Detailed Cambridge-style statement explaining key challenges & examiner wisdom]`;
+
+        const response = await geographyTheoryDataApi({ query: prompt, marks: 4 });
+        const answer = response?.data?.explanation;
+        const parsed = answer ? parseGeoSyllabusSections(answer) : [];
+        setFeatureSections(parsed.length > 0 ? parsed : fallbackSections);
+      } catch (err) {
+        console.error("Error fetching feature details:", err);
+        setFeatureSections(fallbackSections);
+      } finally {
+        setIsFeatureLoading(false);
+      }
+    },
+    [apiResponse?.explanation],
+  );
+
+  useEffect(() => {
+    if (!showResult || isLoading || !apiResponse) return;
+    if (apiResponse.searchMode !== "entity" || formattedFeatures.length !== 1) return;
+    if (autoOpenedRef.current) return;
+
+    autoOpenedRef.current = true;
+    handleFeaturePress(formattedFeatures[0]);
+  }, [showResult, isLoading, apiResponse, formattedFeatures, handleFeaturePress]);
 
   const closeFeatureModal = () => {
     setSelectedFeature(null);
@@ -244,12 +274,29 @@ Structure exactly as four parts:
               <View style={styles.resultBlock}>
                 <View style={styles.resultHeader}>
                   <Text style={styles.resultHeading}>GIS Visualization</Text>
-                  {selectedFeature && (
-                    <Pressable onPress={() => setSelectedFeature(null)}>
+                  {selectedFeature ? (
+                    <Pressable
+                      onPress={() => {
+                        setSelectedFeature(null);
+                        setFeatureSections([]);
+                      }}
+                    >
                       <Text style={styles.clearBtn}>Clear Selection</Text>
                     </Pressable>
-                  )}
+                  ) : null}
                 </View>
+
+                {apiResponse.searchMode === "category" && formattedFeatures.length > 1 ? (
+                  <Text style={styles.tapHint}>
+                    Tap any feature on the map for a 4-part breakdown (e.g. Sindh, Indus).
+                  </Text>
+                ) : null}
+
+                {apiResponse.searchMode === "entity" && apiResponse.focusedEntity ? (
+                  <Text style={styles.tapHint}>
+                    Showing {apiResponse.focusedEntity}. Tap the map label to reopen details.
+                  </Text>
+                ) : null}
 
                 <View style={styles.mapShell}>
                   <GeoMapView
@@ -326,6 +373,13 @@ const styles = StyleSheet.create({
     ...Typography.sectionLabel,
   },
   clearBtn: { color: Colors.accent, ...Typography.buttonSmall },
+  tapHint: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+    fontWeight: "600",
+  },
   mapShell: {
     height: 300,
     borderRadius: 16,
