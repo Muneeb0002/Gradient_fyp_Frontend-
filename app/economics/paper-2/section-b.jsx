@@ -38,6 +38,7 @@ export default function EconomicsPaperTwoSectionBScreen() {
   const [imageUri, setImageUri] = useState("");
   const [loading, setLoading] = useState(false);
   const [dialog, setDialog] = useState(null);
+  const [showGuidelines, setShowGuidelines] = useState(true);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -119,6 +120,60 @@ export default function EconomicsPaperTwoSectionBScreen() {
               icon="text-box-outline"
               compact
             />
+
+            <View style={styles.guidelinesCard}>
+              <Pressable
+                onPress={() => setShowGuidelines(!showGuidelines)}
+                style={styles.guidelinesHeader}
+              >
+                <View style={styles.guidelinesHeaderLeft}>
+                  <MaterialCommunityIcons
+                    name="information-outline"
+                    size={20}
+                    color={Colors.accent}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.guidelinesTitle}>Section B Guidelines</Text>
+                </View>
+                <MaterialCommunityIcons
+                  name={showGuidelines ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={Colors.textMuted}
+                />
+              </Pressable>
+
+              {showGuidelines && (
+                <View style={styles.guidelinesContent}>
+                  <Text style={styles.guidelinesIntro}>
+                    To receive a structured, O-Level mark scheme essay response:
+                  </Text>
+                  
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Input: </Text>
+                      Submit a single typed question or upload exactly 1 photo containing the question.
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="format-list-bulleted" size={16} color={Colors.accent} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Command Words (Text): </Text>
+                      The AI automatically allocates marks based on command words: Define (2m), Explain (4m), Analyse (6m), Discuss (8m).
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="alert-circle-outline" size={16} color={Colors.accent} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Image Marks: </Text>
+                      In image mode, marks are extracted directly from the uploaded photo.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
             <View style={styles.modeRow}>
               {MODES.map((m) => {
@@ -314,5 +369,57 @@ const styles = StyleSheet.create({
   },
   submitWrap: {
     marginTop: 8,
+  },
+  guidelinesCard: {
+    marginTop: 10,
+    marginBottom: 6,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: "hidden",
+  },
+  guidelinesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+  },
+  guidelinesHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  guidelinesTitle: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  guidelinesContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.05)",
+  },
+  guidelinesIntro: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  guidelineIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  guidelineText: {
+    flex: 1,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

@@ -39,6 +39,7 @@ export default function EconomicsPaperOneScreen() {
   const [imageUri, setImageUri] = useState("");
   const [loading, setLoading] = useState(false);
   const [dialog, setDialog] = useState(null);
+  const [showGuidelines, setShowGuidelines] = useState(true);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -123,6 +124,60 @@ export default function EconomicsPaperOneScreen() {
               icon="format-list-checks"
               compact
             />
+
+            <View style={styles.guidelinesCard}>
+              <Pressable
+                onPress={() => setShowGuidelines(!showGuidelines)}
+                style={styles.guidelinesHeader}
+              >
+                <View style={styles.guidelinesHeaderLeft}>
+                  <MaterialCommunityIcons
+                    name="information-outline"
+                    size={20}
+                    color={Colors.accent}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.guidelinesTitle}>Syllabus & MCQ Guidelines</Text>
+                </View>
+                <MaterialCommunityIcons
+                  name={showGuidelines ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={Colors.textMuted}
+                />
+              </Pressable>
+
+              {showGuidelines && (
+                <View style={styles.guidelinesContent}>
+                  <Text style={styles.guidelinesIntro}>
+                    To get a complete economics MCQ explanation, follow these:
+                  </Text>
+                  
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Scope: </Text>
+                      Cambridge O-Level Economics (Syllabus 2281) MCQ questions (1 mark).
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Format: </Text>
+                      Provide the main question stem along with all options A, B, C, and D for exact analysis.
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="image" size={16} color={Colors.accent} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Image Mode: </Text>
+                      Ensure any data tables, pie charts, or demand/supply graphs in the printed MCQ are clearly visible.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
             <View style={styles.modeRow}>
               {MODES.map((m) => {
@@ -328,5 +383,57 @@ const styles = StyleSheet.create({
   },
   submitWrap: {
     marginTop: 8,
+  },
+  guidelinesCard: {
+    marginTop: 10,
+    marginBottom: 6,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: "hidden",
+  },
+  guidelinesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+  },
+  guidelinesHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  guidelinesTitle: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  guidelinesContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.05)",
+  },
+  guidelinesIntro: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  guidelineIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  guidelineText: {
+    flex: 1,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });
