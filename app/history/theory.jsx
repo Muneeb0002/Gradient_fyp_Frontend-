@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -27,6 +28,7 @@ export default function HistoryTheoryScreen() {
   const [marks, setMarks] = useState(null);
   const [question, setQuestion] = useState("");
   const [dialog, setDialog] = useState(null);
+  const [showGuidelines, setShowGuidelines] = useState(true);
 
   // ✅ useMutation se sahi cheezein lo
   const { mutateAsync, isPending } = useAskAI();
@@ -104,6 +106,68 @@ export default function HistoryTheoryScreen() {
               subtitle="Text-based structure with marks: 4 / 7 / 14"
               icon="book-open-page-variant"
             />
+
+            <View style={styles.guidelinesCard}>
+              <Pressable
+                onPress={() => setShowGuidelines(!showGuidelines)}
+                style={styles.guidelinesHeader}
+              >
+                <View style={styles.guidelinesHeaderLeft}>
+                  <MaterialCommunityIcons
+                    name="information-outline"
+                    size={20}
+                    color={Colors.accent}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.guidelinesTitle}>Syllabus & Guidance</Text>
+                </View>
+                <MaterialCommunityIcons
+                  name={showGuidelines ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={Colors.textMuted}
+                />
+              </Pressable>
+
+              {showGuidelines && (
+                <View style={styles.guidelinesContent}>
+                  <Text style={styles.guidelinesIntro}>
+                    To get the best examiner analysis, please follow these guidelines:
+                  </Text>
+                  
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Scope: </Text>
+                      Strictly O-Level Pakistan Studies History (2059/01, 1500 to present Subcontinent/Pakistan).
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Topics: </Text>
+                      Mughal Empire decline, British rule, reform movements (Shah Waliullah), Pakistan Movement, and post-1947 events.
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="close-circle" size={16} color={Colors.danger} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Avoid: </Text>
+                      General knowledge, geography, math, science, or unrelated global history.
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="alert-circle-outline" size={16} color={Colors.accent} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineNote}>
+                      <Text style={{ fontWeight: "700" }}>AI Policy: </Text>
+                      Queries outside Pakistan Studies History (2059/01) will be rejected by the examiner.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
             <View style={styles.card}>
               <SectionCard label="Your question" icon="pencil-outline">
@@ -216,5 +280,63 @@ const styles = StyleSheet.create({
   },
   markChipTextActive: {
     color: Colors.white,
+  },
+  guidelinesCard: {
+    marginTop: 10,
+    marginBottom: 6,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: "hidden",
+  },
+  guidelinesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+  },
+  guidelinesHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  guidelinesTitle: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  guidelinesContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.05)",
+  },
+  guidelinesIntro: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  guidelineIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  guidelineText: {
+    flex: 1,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  guidelineNote: {
+    flex: 1,
+    color: Colors.accent,
+    fontSize: 11,
+    lineHeight: 15,
   },
 });
