@@ -22,6 +22,7 @@ export default function GeographyMapsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [showResult, setShowResult] = useState(false);
+  const [showGuidelines, setShowGuidelines] = useState(true);
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [featureSections, setFeatureSections] = useState([]);
   const [isFeatureLoading, setIsFeatureLoading] = useState(false);
@@ -242,6 +243,68 @@ Structure exactly as four parts, written as a proper exam-style answer worth 4 m
             icon="map-search-outline"
           />
 
+          <View style={styles.guidelinesCard}>
+            <Pressable
+              onPress={() => setShowGuidelines(!showGuidelines)}
+              style={styles.guidelinesHeader}
+            >
+              <View style={styles.guidelinesHeaderLeft}>
+                <MaterialCommunityIcons
+                  name="information-outline"
+                  size={20}
+                  color={Colors.accent}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.guidelinesTitle}>Syllabus Map Guidance</Text>
+              </View>
+              <MaterialCommunityIcons
+                name={showGuidelines ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={Colors.textMuted}
+              />
+            </Pressable>
+
+            {showGuidelines && (
+              <View style={styles.guidelinesContent}>
+                <Text style={styles.guidelinesIntro}>
+                  To visualize features on the GIS map, enter topics following these rules:
+                </Text>
+                
+                <View style={styles.guidelineRow}>
+                  <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                  <Text style={styles.guidelineText}>
+                    <Text style={{ fontWeight: "700", color: Colors.white }}>Map Themes: </Text>
+                    Search categories like Rivers, Crops, Dams, Forests, Ports, Provinces, or Deserts.
+                  </Text>
+                </View>
+
+                <View style={styles.guidelineRow}>
+                  <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                  <Text style={styles.guidelineText}>
+                    <Text style={{ fontWeight: "700", color: Colors.white }}>Specific Entities: </Text>
+                    Search names like Indus River, Tarbela Dam, Sindh, Thar Desert, or Karachi Port.
+                  </Text>
+                </View>
+
+                <View style={styles.guidelineRow}>
+                  <MaterialCommunityIcons name="gesture-tap" size={16} color={Colors.accent} style={styles.guidelineIcon} />
+                  <Text style={styles.guidelineText}>
+                    <Text style={{ fontWeight: "700", color: Colors.white }}>Interaction: </Text>
+                    Tap on the highlighted map features to view detailed 4-point curriculum notes.
+                  </Text>
+                </View>
+
+                <View style={styles.guidelineRow}>
+                  <MaterialCommunityIcons name="close-circle" size={16} color={Colors.danger} style={styles.guidelineIcon} />
+                  <Text style={styles.guidelineText}>
+                    <Text style={{ fontWeight: "700", color: Colors.white }}>Avoid: </Text>
+                    Non-geographical topics, history, general sciences, or other countries.
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
           <SectionCard
             label="Ask or upload"
             icon="map-search-outline"
@@ -429,4 +492,62 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   retryBtnText: { color: Colors.white, ...Typography.button },
+  guidelinesCard: {
+    marginTop: 10,
+    marginBottom: 6,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: "hidden",
+  },
+  guidelinesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+  },
+  guidelinesHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  guidelinesTitle: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  guidelinesContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.05)",
+  },
+  guidelinesIntro: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  guidelineIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  guidelineText: {
+    flex: 1,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  guidelineNote: {
+    flex: 1,
+    color: Colors.accent,
+    fontSize: 11,
+    lineHeight: 15,
+  },
 });

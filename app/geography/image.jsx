@@ -30,6 +30,7 @@ export default function GeographyImageScreen() {
   const router = useRouter();
   const [images, setImages] = useState([]);
   const [dialog, setDialog] = useState(null);
+  const [showGuidelines, setShowGuidelines] = useState(true);
 
 
 
@@ -139,6 +140,68 @@ export default function GeographyImageScreen() {
               subtitle="Upload sources and get image-based structure"
               icon="image-search-outline"
             />
+
+            <View style={styles.guidelinesCard}>
+              <Pressable
+                onPress={() => setShowGuidelines(!showGuidelines)}
+                style={styles.guidelinesHeader}
+              >
+                <View style={styles.guidelinesHeaderLeft}>
+                  <MaterialCommunityIcons
+                    name="information-outline"
+                    size={20}
+                    color={Colors.accent}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.guidelinesTitle}>Image Submission Guidelines</Text>
+                </View>
+                <MaterialCommunityIcons
+                  name={showGuidelines ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={Colors.textMuted}
+                />
+              </Pressable>
+
+              {showGuidelines && (
+                <View style={styles.guidelinesContent}>
+                  <Text style={styles.guidelinesIntro}>
+                    To successfully analyze your image question, please follow these guidelines:
+                  </Text>
+                  
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Supported Images: </Text>
+                      Geography past-paper figures, maps, climate charts, or crop/industry diagrams.
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Clarity: </Text>
+                      Ensure text, labels, and features are clearly visible in the photo.
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="close-circle" size={16} color={Colors.danger} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineText}>
+                      <Text style={{ fontWeight: "700", color: Colors.white }}>Rejected Images: </Text>
+                      Selfies, memes, unrelated text files, or non-geography homework.
+                    </Text>
+                  </View>
+
+                  <View style={styles.guidelineRow}>
+                    <MaterialCommunityIcons name="alert-circle-outline" size={16} color={Colors.accent} style={styles.guidelineIcon} />
+                    <Text style={styles.guidelineNote}>
+                      <Text style={{ fontWeight: "700" }}>Validation Gate: </Text>
+                      Irrelevant images will fail the relevance check with an examiner message.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
             <View style={styles.card}>
               <Text style={styles.uploadLabel}>
@@ -319,5 +382,63 @@ const styles = StyleSheet.create({
   },
   markChipTextActive: {
     color: Colors.white,
+  },
+  guidelinesCard: {
+    marginTop: 10,
+    marginBottom: 6,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: "hidden",
+  },
+  guidelinesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+  },
+  guidelinesHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  guidelinesTitle: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  guidelinesContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.05)",
+  },
+  guidelinesIntro: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  guidelineIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  guidelineText: {
+    flex: 1,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  guidelineNote: {
+    flex: 1,
+    color: Colors.accent,
+    fontSize: 11,
+    lineHeight: 15,
   },
 });
