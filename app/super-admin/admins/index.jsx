@@ -88,11 +88,11 @@ export default function SuperAdminAdminsScreen() {
     deleteAdmin(pendingDelete.email, {
       onSuccess: () => {
         setPendingDelete(null);
-        showAlert("Admin delete ho gaya!", "success");
+        showAlert("Admin deleted successfully", "success");
       },
       onError: () => {
         setPendingDelete(null);
-        showAlert("Delete fail hua!", "error");
+        showAlert("Failed to delete admin", "error");
       },
     });
   };
@@ -154,6 +154,8 @@ export default function SuperAdminAdminsScreen() {
             ? `Delete ${pendingDelete.firstName} ${pendingDelete.lastName}?`
             : ""
         }
+        confirmLabel="Delete"
+        destructive={true}
         onCancel={() => !isDeleting && setPendingDelete(null)}
         onConfirm={confirmDelete}
         loading={isDeleting}

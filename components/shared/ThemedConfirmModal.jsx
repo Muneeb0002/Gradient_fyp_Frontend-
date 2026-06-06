@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Colors from "../../constants/Colors";
 
 export default function ThemedConfirmModal({
@@ -10,6 +10,7 @@ export default function ThemedConfirmModal({
   onCancel,
   onConfirm,
   destructive = false,
+  loading = false,
 }) {
   return (
     <Modal
@@ -19,7 +20,7 @@ export default function ThemedConfirmModal({
       onRequestClose={onCancel}
     >
       <View style={styles.root}>
-        <Pressable style={styles.dismissLayer} onPress={onCancel} />
+        <Pressable style={styles.dismissLayer} onPress={onCancel} disabled={loading} />
         <View style={styles.center} pointerEvents="box-none">
           <View style={styles.card}>
             <View
@@ -33,23 +34,29 @@ export default function ThemedConfirmModal({
             <View style={styles.actions}>
               <Pressable
                 onPress={onCancel}
+                disabled={loading}
                 style={({ pressed }) => [
                   styles.btn,
                   styles.btnCancel,
-                  pressed && { opacity: 0.88 },
+                  pressed && !loading && { opacity: 0.88 },
                 ]}
               >
                 <Text style={styles.btnCancelText}>{cancelLabel}</Text>
               </Pressable>
               <Pressable
                 onPress={onConfirm}
+                disabled={loading}
                 style={({ pressed }) => [
                   styles.btn,
                   destructive ? styles.btnDanger : styles.btnConfirm,
-                  pressed && { opacity: 0.88 },
+                  pressed && !loading && { opacity: 0.88 },
                 ]}
               >
-                <Text style={styles.btnConfirmText}>{confirmLabel}</Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text style={styles.btnConfirmText}>{confirmLabel}</Text>
+                )}
               </Pressable>
             </View>
           </View>
