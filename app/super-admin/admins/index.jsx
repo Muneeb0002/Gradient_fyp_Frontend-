@@ -19,7 +19,7 @@ import Colors from "../../../constants/Colors";
 import Typography from "../../../constants/Typography";
 import usePortalAlert from "../../../src/hooks/usePortalAlert";
 
-import { useFetchAdmins } from "../../../src/hooks/useFetchAdminUsers";
+import { useDeleteAdmin, useFetchAdmins } from "../../../src/hooks/useFetchAdminUsers";
 
 function AdminRow({ item, onDelete }) {
   return (
@@ -64,16 +64,14 @@ export default function SuperAdminAdminsScreen() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const { showAlert, AlertModal } = usePortalAlert();
 
-  // ✅ React Query
   const { data, isLoading, isError, refetch } = useFetchAdmins();
+  const { mutate: deleteAdmin, isPending: isDeleting } = useDeleteAdmin();
 
   const admins = data?.data || [];
 
-  // 🔥 SEARCH FILTER
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return admins;
-
     return admins.filter(
       (a) =>
         a.email?.toLowerCase().includes(q) ||
@@ -82,13 +80,21 @@ export default function SuperAdminAdminsScreen() {
   }, [admins, query]);
 
   const onRefresh = async () => {
-    console.log("🔄 Refreshing admins...");
     await refetch();
   };
 
   const confirmDelete = () => {
-    console.log("🗑 Delete clicked:", pendingDelete);
-    setPendingDelete(null);
+    if (!pendingDelete) return;
+    deleteAdmin(pendingDelete.email, {
+      onSuccess: () => {
+        setPendingDelete(null);
+        showAlert("Admin delete ho gaya!", "success");
+      },
+      onError: () => {
+        setPendingDelete(null);
+        showAlert("Delete fail hua!", "error");
+      },
+    });
   };
 
   return (
@@ -117,21 +123,18 @@ export default function SuperAdminAdminsScreen() {
         placeholder="Search admins"
       />
 
-      {/* 🔥 LOADING */}
       {isLoading && (
         <Text style={{ color: "white", textAlign: "center", marginTop: 20 }}>
           Loading admins...
         </Text>
       )}
 
-      {/* ❌ ERROR */}
       {isError && (
         <Text style={{ color: "red", textAlign: "center", marginTop: 20 }}>
           Failed to load admins
         </Text>
       )}
 
-      {/* LIST */}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item._id}
@@ -143,7 +146,6 @@ export default function SuperAdminAdminsScreen() {
         }
       />
 
-      {/* DELETE MODAL */}
       <ThemedConfirmModal
         visible={!!pendingDelete}
         title="Delete admin"
@@ -152,8 +154,9 @@ export default function SuperAdminAdminsScreen() {
             ? `Delete ${pendingDelete.firstName} ${pendingDelete.lastName}?`
             : ""
         }
-        onCancel={() => setPendingDelete(null)}
+        onCancel={() => !isDeleting && setPendingDelete(null)}
         onConfirm={confirmDelete}
+        loading={isDeleting}
       />
 
       <AlertModal />
@@ -198,21 +201,6 @@ const styles = StyleSheet.create({
   email: { color: Colors.textSecondary, fontSize: 12, marginTop: 2 },
   date: { color: Colors.textMuted, fontSize: 11, marginTop: 4 },
   deleteBtn: { padding: 8 },
-  fab: {
-    position: "absolute",
-    right: 22,
-    bottom: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    borderWidth: 1,
-    borderColor: Colors.primaryDark,
-    gap: 8,
-  },
-  fabText: { color: Colors.white, fontWeight: "800", fontSize: 14 },
   empty: { alignItems: "center", paddingTop: 48, paddingHorizontal: 24 },
   emptyText: {
     color: Colors.textMuted,

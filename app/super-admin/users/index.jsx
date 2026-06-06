@@ -18,11 +18,13 @@ import ThemedConfirmModal from "../../../components/shared/ThemedConfirmModal";
 
 import Colors from "../../../constants/Colors";
 import Typography from "../../../constants/Typography";
-import { PORTAL_ALERTS } from "../../../constants/portalAlertMessages";
 import usePortalAlert from "../../../src/hooks/usePortalAlert";
 
 // ✅ REAL API HOOK
-import { useFetchUsers } from "../../../src/hooks/useFetchAdminUsers";
+import { useDeleteAdmin, useFetchUsers } from "../../../src/hooks/useFetchAdminUsers";
+
+
+
 
 function UserRow({ item, onDelete, onPassword }) {
   return (
@@ -66,24 +68,36 @@ export default function SuperAdminUsersScreen() {
 
   const { showAlert, AlertModal } = usePortalAlert();
 
-  // ✅ API CALL
   const { data, isLoading, isError, refetch } = useFetchUsers();
+  const { mutate: deleteUser, isPending: isDeleting } = useDeleteAdmin();
 
   const users = data?.data || [];
 
-  console.log("📦 USERS IN SCREEN:", users);
-
-  // SEARCH
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return users;
-
     return users.filter(
       (u) =>
         u.email?.toLowerCase().includes(q) ||
         `${u.firstName} ${u.lastName}`.toLowerCase().includes(q)
     );
   }, [users, query]);
+
+  // ✅ Actual delete function
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+
+    deleteUser(pendingDelete.email, {
+      onSuccess: () => {
+        setPendingDelete(null);
+        showAlert("User deleted successfully", "success");
+      },
+      onError: () => {
+        setPendingDelete(null);
+        showAlert("Failed to delete user", "error");
+      },
+    });
+  };
 
   return (
     <AdminScreenShell scroll={false} contentStyle={styles.shell}>
@@ -103,21 +117,18 @@ export default function SuperAdminUsersScreen() {
         placeholder="Search users"
       />
 
-      {/* LOADING */}
       {isLoading && (
         <Text style={{ color: "white", textAlign: "center", marginTop: 20 }}>
           Loading users...
         </Text>
       )}
 
-      {/* ERROR */}
       {isError && (
         <Text style={{ color: "red", textAlign: "center", marginTop: 20 }}>
           Failed to load users
         </Text>
       )}
 
-      {/* LIST */}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item._id}
@@ -133,7 +144,7 @@ export default function SuperAdminUsersScreen() {
         }
       />
 
-      {/* DELETE */}
+      {/* ✅ DELETE — confirmDelete properly wired */}
       <ThemedConfirmModal
         visible={!!pendingDelete}
         title="Delete user"
@@ -142,11 +153,9 @@ export default function SuperAdminUsersScreen() {
             ? `Delete ${pendingDelete.firstName} ${pendingDelete.lastName}?`
             : ""
         }
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => {
-          console.log("DELETE USER:", pendingDelete);
-          setPendingDelete(null);
-        }}
+        onCancel={() => !isDeleting && setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        loading={isDeleting}
       />
 
       {/* PASSWORD */}
@@ -168,7 +177,6 @@ export default function SuperAdminUsersScreen() {
     </AdminScreenShell>
   );
 }
-
 const styles = StyleSheet.create({
   shell: { flex: 1, paddingBottom: 0 },
   addBtn: {

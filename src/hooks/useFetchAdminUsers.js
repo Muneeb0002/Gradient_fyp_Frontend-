@@ -1,15 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-    createAdminAccount,
-    fetchAdminHistoryList,
-    fetchAdminUsersList,
-    fetchAdmins,
-    fetchUsers
+  createAdminAccount,
+  deleteAdminApi,
+  fetchAdminHistoryList,
+  fetchAdminUsersList,
+  fetchAdmins,
+  fetchUsers
 } from "../admin.api/fetchAdminUsersList.js"; // Apni file ka sahi path de dena
 
 
+
+
 export const useFetchAdminUsers = () => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); 
 
   return useMutation({
     mutationFn: (credentials) => fetchAdminUsersList(credentials),
@@ -106,3 +109,28 @@ export const useFetchAdminHistory = () => {
     refetchOnWindowFocus: false, 
   });
 };
+
+
+
+
+export const useDeleteAdmin = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (email) => deleteAdminApi(email),
+    
+    onSuccess: (data) => {
+      console.log("Admin deleted successfully:", data);
+      
+      // Sabse important step: Data delete hone ke baad grid aur list ko automatic refresh karega
+      queryClient.invalidateQueries({ queryKey: ["admins"] }); 
+      // Note: "admins" ki jagah wo key likhna jo aapne useFetchAdmins mein queryKey rakhi hui hai
+    },
+    
+    onError: (error) => {
+      console.error("Error deleting admin:", error?.response?.data || error.message);
+    }
+  });
+};
+
+

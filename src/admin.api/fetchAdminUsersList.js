@@ -59,3 +59,14 @@ export const fetchAdminHistoryList = async () => {
   
   return response.data; // { success: true, total: 235, data: [...] }
 };
+
+
+
+// Delete Admin API Call
+export const deleteAdminApi = async (email) => {
+  // Body none hai, isliye sirf URL pass ho raha hai
+  const response = await api.delete(`/admin/delete-admin/${email}`);
+  return response.data;
+};
+
+
