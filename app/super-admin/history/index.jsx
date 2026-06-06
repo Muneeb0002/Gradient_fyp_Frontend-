@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -12,19 +13,32 @@ import {
 import AdminScreenShell from "../../../components/admin/AdminScreenShell";
 import ListScreenToolbar from "../../../components/admin/ListScreenToolbar";
 import PortalPageHeader from "../../../components/admin/PortalPageHeader";
-import { MOCK_HISTORY } from "../../../constants/adminPortalData";
 import Colors from "../../../constants/Colors";
 import Typography from "../../../constants/Typography";
 
-const SUBJECT_COLORS = {
-  Mathematics: Colors.primary,
-  Geography: "#60A5FA",
-  History: "#FBBF24",
-  Economics: "#A78BFA",
+// Humne jo naya hook banaya tha useQuery wala, usko sahi path se import karein bhae
+import { useFetchAdminHistory } from "../../../src/hooks/useFetchAdminUsers";
+
+
+const MODE_COLORS = {
+  chat: Colors.primary,
+  quiz: "#60A5FA",
+  test: "#FBBF24",
 };
 
 function HistoryRow({ item, onPress }) {
-  const accent = SUBJECT_COLORS[item.subject] ?? Colors.accent;
+  // Subject backend mein nahi hai, toh mode ("chat") ke mutabiq rang set hoga
+  const accent = MODE_COLORS[item.mode] ?? Colors.accent;
+
+  // Date format sahi karne ke liye
+  const formattedDate = item.createdAt 
+    ? new Date(item.createdAt).toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "";
+
   return (
     <Pressable
       onPress={onPress}
@@ -32,20 +46,23 @@ function HistoryRow({ item, onPress }) {
     >
       <View style={[styles.subjectDot, { backgroundColor: accent }]} />
       <View style={styles.info}>
+        {/* API ki 'query' ko Title bana diya */}
         <Text style={styles.title} numberOfLines={1}>
-          {item.title}
+          {item.query || "No Query"}
         </Text>
+        {/* API ke 'answer' ko Preview bana diya */}
         <Text style={styles.preview} numberOfLines={2}>
-          {item.preview}
+          {item.answer || "No Answer"}
         </Text>
         <Text style={styles.meta}>
-          {item.username} · {item.subject}
+          {item.username} · Mode: {item.mode?.toUpperCase()}
         </Text>
-        <Text style={styles.date}>{item.createdAt}</Text>
+        <Text style={styles.date}>{formattedDate}</Text>
       </View>
       <View style={styles.trailing}>
+        {/* Marks ko yahan show karwa diya pill ke andar */}
         <View style={styles.countPill}>
-          <Text style={styles.countText}>{item.messageCount}</Text>
+          <Text style={styles.countText}>+{item.marks || 0} Marks</Text>
         </View>
         <MaterialCommunityIcons
           name="chevron-right"
@@ -60,19 +77,25 @@ function HistoryRow({ item, onPress }) {
 export default function SuperAdminHistoryScreen() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
+  
+  // 1. TanStack `useQuery` Hook Call Kiya
+  const { data: apiResponse, isLoading, isError, refetch } = useFetchAdminHistory();
 
+  // 2. Real API array extracted (235 items)
+  const historyData = apiResponse?.data || [];
+
+  // Search filter ka logic ab real history data par chalega
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return MOCK_HISTORY;
-    return MOCK_HISTORY.filter(
+    if (!q) return historyData;
+    return historyData.filter(
       (h) =>
-        h.title.toLowerCase().includes(q) ||
-        h.username.toLowerCase().includes(q) ||
-        h.subject.toLowerCase().includes(q) ||
-        h.preview.toLowerCase().includes(q),
+        (h.query && h.query.toLowerCase().includes(q)) ||
+        (h.username && h.username.toLowerCase().includes(q)) ||
+        (h.answer && h.answer.toLowerCase().includes(q)) ||
+        (h.mode && h.mode.toLowerCase().includes(q)),
     );
-  }, [query]);
+  }, [historyData, query]);
 
   return (
     <AdminScreenShell scroll={false} contentStyle={styles.shell}>
@@ -89,42 +112,60 @@ export default function SuperAdminHistoryScreen() {
         label="sessions"
         query={query}
         onChangeQuery={setQuery}
-        placeholder="Search by user, subject, or topic"
+        placeholder="Search by user, query, or answer"
       />
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <HistoryRow
-            item={item}
-            onPress={() => router.push(`/super-admin/history/${item.id}`)}
-          />
-        )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              setTimeout(() => setRefreshing(false), 700);
-            }}
-            tintColor={Colors.accent}
-          />
-        }
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No sessions match your search.</Text>
-          </View>
-        }
-      />
+      {/* 3. Loading State UI */}
+      {isLoading && (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+          <Text style={[styles.emptyText, { marginTop: 10 }]}>Fetching history from server...</Text>
+        </View>
+      )}
+
+      {/* 4. Error State UI */}
+      {isError && (
+        <View style={styles.center}>
+          <Text style={[styles.emptyText, { color: "red" }]}>
+            Failed to load chat history.
+          </Text>
+        </View>
+      )}
+
+      {/* 5. Main List UI Render */}
+      {!isLoading && !isError && (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item._id} // Mongoose ID use ki hai bhae
+          renderItem={({ item }) => (
+            <HistoryRow
+              item={item}
+              onPress={() => router.push(`/super-admin/history/${item._id}`)}
+            />
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={refetch} // Pull-to-refresh par query dubara run hogi
+              tintColor={Colors.accent}
+            />
+          }
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No sessions match your search.</Text>
+            </View>
+          }
+        />
+      )}
     </AdminScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
   shell: { flex: 1, paddingBottom: 0 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   list: { paddingBottom: 32 },
   row: {
     flexDirection: "row",
@@ -168,6 +209,8 @@ const styles = StyleSheet.create({
   trailing: {
     alignItems: "flex-end",
     marginLeft: 8,
+    justifyContent: "space-between",
+    alignSelf: "stretch",
   },
   countPill: {
     paddingHorizontal: 8,

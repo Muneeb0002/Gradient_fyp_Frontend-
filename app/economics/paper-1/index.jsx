@@ -26,6 +26,8 @@ import { SAMPLE_MCQ_QUESTION } from "../../../constants/economicsSampleData";
 import { saveMcqSession } from "../../../lib/economicsMcqSession";
 import { openSubjectResult } from "../../../lib/subjectNavigation";
 
+import { useEconomicsPaper1Mutation } from "../../../src/hooks/useEconomicsPaper1";
+
 const MODES = [
   { id: "text", label: "Text", icon: "format-text" },
   { id: "image", label: "Image", icon: "image-outline" },
@@ -41,6 +43,8 @@ export default function EconomicsPaperOneScreen() {
   const [dialog, setDialog] = useState(null);
   const [showGuidelines, setShowGuidelines] = useState(true);
 
+  const { mutateAsync } = useEconomicsPaper1Mutation();
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -50,8 +54,9 @@ export default function EconomicsPaperOneScreen() {
       });
       return;
     }
+    // 🛠️ FIX: MediaTypeOptions deprecation warning resolved
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       allowsEditing: true,
       quality: 0.85,
     });
@@ -86,17 +91,33 @@ export default function EconomicsPaperOneScreen() {
       return;
     }
 
-    setLoading(true);
-    await saveMcqSession({
-      question: question.trim(),
-      mode,
-      imageUri: hasImage ? imageUri : "",
-    });
+    try {
+      setLoading(true);
 
-    setTimeout(() => {
+      // 🛠️ 1. Actual Backend Mutation Call
+      const apiResponse = await mutateAsync({
+        mode,
+        question: question.trim(),
+        imageUri: hasImage ? imageUri : "",
+      });
+
+      // 🛠️ 2. Saving Real API Response inside local session state
+      await saveMcqSession({
+        question: question.trim(),
+        mode,
+        imageUri: hasImage ? imageUri : "",
+        apiResult: apiResponse, 
+      });
+
       setLoading(false);
       openSubjectResult(router, "/economics/paper-1/result");
-    }, 900);
+    } catch (apiError) {
+      setLoading(false);
+      setDialog({
+        title: "Analysis Failed",
+        message: apiError.response?.data?.message || "Something went wrong while scanning the MCQ.",
+      });
+    }
   };
 
   const fillSample = () => setQuestion(SAMPLE_MCQ_QUESTION);
@@ -278,16 +299,8 @@ export default function EconomicsPaperOneScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    paddingHorizontal: 22,
-    paddingBottom: 40,
-    paddingTop: 8,
-  },
-  modeRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 18,
-  },
+  scroll: { paddingHorizontal: 22, paddingBottom: 40, paddingTop: 8 },
+  modeRow: { flexDirection: "row", gap: 8, marginBottom: 18 },
   modeTab: {
     flex: 1,
     flexDirection: "row",
@@ -304,28 +317,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(79, 209, 197, 0.12)",
     borderColor: "rgba(79, 209, 197, 0.4)",
   },
-  modeTabText: {
-    color: Colors.textMuted,
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  modeTabTextActive: {
-    color: Colors.accent,
-  },
-  sampleLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-  },
-  sampleLinkText: {
-    color: Colors.accent,
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  imageSection: {
-    marginTop: 14,
-  },
+  modeTabText: { color: Colors.textMuted, fontWeight: "700", fontSize: 13 },
+  modeTabTextActive: { color: Colors.accent },
+  sampleLink: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  sampleLinkText: { color: Colors.accent, fontWeight: "700", fontSize: 13 },
+  imageSection: { marginTop: 14 },
   uploadBox: {
     alignItems: "center",
     justifyContent: "center",
@@ -337,18 +333,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     backgroundColor: Colors.surfaceAlt,
   },
-  uploadTitle: {
-    color: Colors.textSecondary,
-    fontWeight: "700",
-    fontSize: 15,
-    marginTop: 12,
-  },
-  uploadHint: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    marginTop: 4,
-    textAlign: "center",
-  },
+  uploadTitle: { color: Colors.textSecondary, fontWeight: "700", fontSize: 15, marginTop: 12 },
+  uploadHint: { color: Colors.textMuted, fontSize: 12, marginTop: 4, textAlign: "center" },
   previewWrap: {
     position: "relative",
     borderRadius: 16,
@@ -357,10 +343,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  preview: {
-    width: "100%",
-    height: 200,
-  },
+  preview: { width: "100%", height: 200 },
   removeImage: {
     position: "absolute",
     top: 10,
@@ -372,18 +355,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  changePhoto: {
-    alignItems: "center",
-    marginTop: 12,
-  },
-  changePhotoText: {
-    color: Colors.accent,
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  submitWrap: {
-    marginTop: 8,
-  },
+  changePhoto: { alignItems: "center", marginTop: 12 },
+  changePhotoText: { color: Colors.accent, fontWeight: "700", fontSize: 13 },
+  submitWrap: { marginTop: 8 },
   guidelinesCard: {
     marginTop: 10,
     marginBottom: 6,
@@ -393,47 +367,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     overflow: "hidden",
   },
-  guidelinesHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 14,
-  },
-  guidelinesHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  guidelinesTitle: {
-    color: Colors.white,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  guidelinesContent: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.05)",
-  },
-  guidelinesIntro: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 10,
-    marginTop: 10,
-  },
-  guidelineRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 8,
-  },
-  guidelineIcon: {
-    marginRight: 8,
-    marginTop: 2,
-  },
-  guidelineText: {
-    flex: 1,
-    color: Colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  guidelinesHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14 },
+  guidelinesHeaderLeft: { flexDirection: "row", alignItems: "center" },
+  guidelinesTitle: { color: Colors.white, fontSize: 14, fontWeight: "700" },
+  guidelinesContent: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.05)" },
+  guidelinesIntro: { color: Colors.textSecondary, fontSize: 12, lineHeight: 16, marginBottom: 10, marginTop: 10 },
+  guidelineRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
+  guidelineIcon: { marginRight: 8, marginTop: 2 },
+  guidelineText: { flex: 1, color: Colors.textSecondary, fontSize: 12, lineHeight: 16 },
 });

@@ -3,14 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../../../components/auth/PrimaryButton";
 import AppDecor from "../../../components/shared/AppDecor";
@@ -22,9 +15,13 @@ import Colors from "../../../constants/Colors";
 import { savePaper2Session } from "../../../lib/economicsPaper2Session";
 import { openSubjectResult } from "../../../lib/subjectNavigation";
 
+// Custom Hook Import
+import { useSubmitEconomics } from "../../../src/hooks/useEcononmicsPaper2A";
+
 const MAX_IMAGES = 3;
 
 export default function EconomicsPaperTwoSectionAScreen() {
+  const { mutateAsync } = useSubmitEconomics();
   const router = useRouter();
   const [imageUris, setImageUris] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,8 +46,9 @@ export default function EconomicsPaperTwoSectionAScreen() {
       return;
     }
 
+    // 🛠️ FIX: Warning hatane ke liye 'images' string directly use ki hai
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       allowsEditing: false,
       quality: 0.85,
     });
@@ -73,18 +71,33 @@ export default function EconomicsPaperTwoSectionAScreen() {
       return;
     }
 
-    setLoading(true);
-    await savePaper2Session({
-      section: "A",
-      inputMode: "image",
-      query: "",
-      imageUris,
-    });
+    try {
+      setLoading(true);
 
-    setTimeout(() => {
+      // 1. API hit ho rahi hai
+      const apiResponse = await mutateAsync({
+        section: "A",
+        imageUris: imageUris,
+      });
+
+      // 2. Response ko local session me save kar rahe hain
+      await savePaper2Session({
+        section: "A",
+        inputMode: "image",
+        query: "",
+        imageUris,
+        apiResult: apiResponse, 
+      });
+
       setLoading(false);
       openSubjectResult(router, "/economics/paper-2/result");
-    }, 900);
+    } catch (apiError) {
+      setLoading(false);
+      setDialog({
+        title: "Submission Failed",
+        message: apiError.response?.data?.message || "Something went wrong while connecting to the server.",
+      });
+    }
   };
 
   return (

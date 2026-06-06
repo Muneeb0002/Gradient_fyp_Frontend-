@@ -6,10 +6,10 @@ import AdminScreenShell from "../../components/admin/AdminScreenShell";
 import ManagementGrid from "../../components/admin/ManagementGrid";
 import PortalMenuCard from "../../components/admin/PortalMenuCard";
 import PortalPageHeader from "../../components/admin/PortalPageHeader";
-import AppLogoutButton from "../../components/shared/AppLogoutButton";
-import AppLogoutModal from "../../components/shared/AppLogoutModal";
 import ProfileHeroCard from "../../components/admin/ProfileHeroCard";
 import StatGrid from "../../components/admin/StatGrid";
+import AppLogoutButton from "../../components/shared/AppLogoutButton";
+import AppLogoutModal from "../../components/shared/AppLogoutModal";
 import {
   MOCK_HISTORY,
   SUPER_ADMIN_OVERVIEW_STATS,
@@ -20,6 +20,7 @@ import Typography from "../../constants/Typography";
 import { clearAuthSession } from "../../lib/authSession";
 import { usePortalAdmins } from "../../src/context/PortalAdminsContext";
 import { usePortalStudents } from "../../src/context/PortalStudentsContext";
+import { useFetchAdminHistory, useFetchAdmins, useFetchUsers } from "../../src/hooks/useFetchAdminUsers";
 import usePortalProfile from "../../src/hooks/usePortalProfile";
 import usePortalRootBack from "../../src/hooks/usePortalRootBack";
 
@@ -32,18 +33,52 @@ export default function SuperAdminDashboardScreen() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   usePortalRootBack(true);
 
+  const { 
+    data: adminsData, 
+    isLoading: isAdminLoading, 
+  } = useFetchAdmins();
+
+  const { 
+    data: apiResponse, 
+    isLoading: isHistoryLoading, 
+  } = useFetchAdminHistory();
+
+  const { 
+    data: usersData, 
+    isLoading: isUsersLoading, 
+  } = useFetchUsers();
+
   const displayName = profile.displayName ?? SUPER_ADMIN_PROFILE.displayName;
   const email = profile.email ?? SUPER_ADMIN_PROFILE.email;
 
+const adminsCount = adminsData?.total ?? admins.length ?? 0;
+const usersCount = usersData?.total ?? students.length ?? 0;
+const historyCount = apiResponse?.total ?? MOCK_HISTORY.length ?? 0;
   const stats = useMemo(
     () =>
       SUPER_ADMIN_OVERVIEW_STATS.map((s) => {
-        if (s.id === "admins") return { ...s, value: String(admins.length) };
-        if (s.id === "users") return { ...s, value: String(students.length) };
-        if (s.id === "sessions") return { ...s, value: String(MOCK_HISTORY.length) };
+        if (s.id === "admins") {
+          return { 
+            ...s, 
+            value: isAdminLoading ? "..." : String(adminsCount) 
+          };
+        }
+        if (s.id === "users") {
+          return { 
+            ...s, 
+            value: isUsersLoading ? "..." : String(usersCount) 
+          };
+        }
+        if (s.id === "sessions") {
+          return { 
+            ...s, 
+            value: isHistoryLoading ? "..." : String(historyCount) 
+          };
+        }
         return s;
       }),
-    [admins.length, students.length],
+    // ✅ FIX: API data dependencies mein add ki
+    [adminsCount, usersCount, historyCount, isAdminLoading, isUsersLoading, isHistoryLoading],
   );
 
   const managementItems = useMemo(
@@ -53,7 +88,7 @@ export default function SuperAdminDashboardScreen() {
         title: "Administrators",
         subtitle: "Create & manage team",
         icon: "account-tie",
-        count: admins.length,
+        count: adminsCount, // ✅ API data
         colors: ["rgba(251, 191, 36, 0.18)", Colors.surface],
         onPress: () => router.push("/super-admin/admins"),
       },
@@ -62,7 +97,7 @@ export default function SuperAdminDashboardScreen() {
         title: "Students",
         subtitle: "Full student CRUD",
         icon: "school",
-        count: students.length,
+        count: usersCount, // ✅ API data
         colors: ["rgba(96, 165, 250, 0.15)", Colors.surface],
         onPress: () => router.push("/super-admin/users"),
       },
@@ -71,7 +106,7 @@ export default function SuperAdminDashboardScreen() {
         title: "Chat history",
         subtitle: "Every AI session",
         icon: "message-text",
-        count: MOCK_HISTORY.length,
+        count: historyCount, // ✅ API data
         colors: ["rgba(167, 139, 250, 0.15)", Colors.surface],
         onPress: () => router.push("/super-admin/history"),
       },
@@ -84,7 +119,7 @@ export default function SuperAdminDashboardScreen() {
         onPress: () => router.push("/super-admin/admins/create"),
       },
     ],
-    [admins.length, students.length, router],
+    [adminsCount, usersCount, historyCount, router],
   );
 
   const handleLogout = async () => {

@@ -9,36 +9,44 @@ import {
   Text,
   View,
 } from "react-native";
+
 import AdminScreenShell from "../../../components/admin/AdminScreenShell";
 import ListScreenToolbar from "../../../components/admin/ListScreenToolbar";
 import PortalPageHeader from "../../../components/admin/PortalPageHeader";
 import ThemedConfirmModal from "../../../components/shared/ThemedConfirmModal";
+
 import Colors from "../../../constants/Colors";
-import { PORTAL_ALERTS } from "../../../constants/portalAlertMessages";
 import Typography from "../../../constants/Typography";
-import { usePortalAdmins } from "../../../src/context/PortalAdminsContext";
 import usePortalAlert from "../../../src/hooks/usePortalAlert";
+
+import { useFetchAdmins } from "../../../src/hooks/useFetchAdminUsers";
 
 function AdminRow({ item, onDelete }) {
   return (
     <View style={styles.row}>
       <View style={styles.avatar}>
         <Text style={styles.initials}>
-          {item.firstName[0]}
-          {item.lastName[0]}
+          {item.firstName?.[0]}
+          {item.lastName?.[0]}
         </Text>
       </View>
+
       <View style={styles.info}>
         <Text style={styles.name}>
           {item.firstName} {item.lastName}
         </Text>
         <Text style={styles.email}>{item.email}</Text>
-        <Text style={styles.date}>Added {item.createdAt}</Text>
+        <Text style={styles.date}>
+          Added {new Date(item.createdAt).toDateString()}
+        </Text>
       </View>
+
       <Pressable
         onPress={() => onDelete(item)}
-        hitSlop={12}
-        style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.85 }]}
+        style={({ pressed }) => [
+          styles.deleteBtn,
+          pressed && { opacity: 0.7 },
+        ]}
       >
         <MaterialCommunityIcons
           name="trash-can-outline"
@@ -52,37 +60,35 @@ function AdminRow({ item, onDelete }) {
 
 export default function SuperAdminAdminsScreen() {
   const router = useRouter();
-  const { admins, removeAdmin, resetAdmins } = usePortalAdmins();
   const [query, setQuery] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
   const { showAlert, AlertModal } = usePortalAlert();
 
+  // ✅ React Query
+  const { data, isLoading, isError, refetch } = useFetchAdmins();
+
+  const admins = data?.data || [];
+
+  // 🔥 SEARCH FILTER
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return admins;
+
     return admins.filter(
       (a) =>
-        a.email.toLowerCase().includes(q) ||
-        `${a.firstName} ${a.lastName}`.toLowerCase().includes(q),
+        a.email?.toLowerCase().includes(q) ||
+        `${a.firstName} ${a.lastName}`.toLowerCase().includes(q)
     );
   }, [admins, query]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      resetAdmins();
-      setRefreshing(false);
-    }, 700);
+  const onRefresh = async () => {
+    console.log("🔄 Refreshing admins...");
+    await refetch();
   };
 
   const confirmDelete = () => {
-    if (!pendingDelete) return;
-    const name = `${pendingDelete.firstName} ${pendingDelete.lastName}`;
-    removeAdmin(pendingDelete.id);
+    console.log("🗑 Delete clicked:", pendingDelete);
     setPendingDelete(null);
-    const { title, message } = PORTAL_ALERTS.adminRemoved(name);
-    showAlert(title, message);
   };
 
   return (
@@ -92,13 +98,13 @@ export default function SuperAdminAdminsScreen() {
         subtitle="Manage platform administrators"
         icon="account-tie"
         accent="#FBBF24"
-        onBack={() => router.replace("/super-admin")}
+        onBack={() => router.back()}
         rightAction={
           <Pressable
             onPress={() => router.push("/super-admin/admins/create")}
-            style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.88 }]}
+            style={styles.addBtn}
           >
-            <MaterialCommunityIcons name="plus" size={22} color={Colors.white} />
+            <MaterialCommunityIcons name="plus" size={22} color="white" />
           </Pressable>
         }
       />
@@ -108,55 +114,44 @@ export default function SuperAdminAdminsScreen() {
         label="admins"
         query={query}
         onChangeQuery={setQuery}
-        placeholder="Search by name or email"
+        placeholder="Search admins"
       />
 
+      {/* 🔥 LOADING */}
+      {isLoading && (
+        <Text style={{ color: "white", textAlign: "center", marginTop: 20 }}>
+          Loading admins...
+        </Text>
+      )}
+
+      {/* ❌ ERROR */}
+      {isError && (
+        <Text style={{ color: "red", textAlign: "center", marginTop: 20 }}>
+          Failed to load admins
+        </Text>
+      )}
+
+      {/* LIST */}
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <AdminRow item={item} onDelete={setPendingDelete} />
         )}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.accent}
-          />
-        }
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <MaterialCommunityIcons
-              name="account-search-outline"
-              size={48}
-              color={Colors.textMuted}
-            />
-            <Text style={styles.emptyText}>No administrators match your search.</Text>
-          </View>
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
         }
       />
 
-      <Pressable
-        onPress={() => router.push("/super-admin/admins/create")}
-        style={({ pressed }) => [styles.fab, pressed && { opacity: 0.92 }]}
-      >
-        <MaterialCommunityIcons name="account-plus" size={26} color={Colors.white} />
-        <Text style={styles.fabText}>New admin</Text>
-      </Pressable>
-
+      {/* DELETE MODAL */}
       <ThemedConfirmModal
         visible={!!pendingDelete}
-        title="Remove administrator"
+        title="Delete admin"
         message={
           pendingDelete
-            ? `Remove ${pendingDelete.firstName} ${pendingDelete.lastName}? This cannot be undone.`
+            ? `Delete ${pendingDelete.firstName} ${pendingDelete.lastName}?`
             : ""
         }
-        cancelLabel="Cancel"
-        confirmLabel="Remove"
-        destructive
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
       />

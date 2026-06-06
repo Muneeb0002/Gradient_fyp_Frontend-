@@ -24,21 +24,24 @@ import ThemedMessageModal from "../../../components/shared/ThemedMessageModal";
 import Colors from "../../../constants/Colors";
 import { SAMPLE_PAPER2_SECTION_B_QUERY } from "../../../constants/economicsSampleData";
 import { savePaper2Session } from "../../../lib/economicsPaper2Session";
-import { openSubjectResult } from "../../../lib/subjectNavigation";
+import { useEconomicsPaper2 } from "../../../src/hooks/useEconomicsPaper2B.js";
 
 const MODES = [
-  { id: "text", label: "Text", icon: "format-text" },
-  { id: "image", label: "Image", icon: "image-outline" },
+  { id: "text",  label: "Text",  icon: "format-text"   },
+  { id: "image", label: "Image", icon: "image-outline"  },
 ];
 
 export default function EconomicsPaperTwoSectionBScreen() {
   const router = useRouter();
-  const [mode, setMode] = useState("text");
-  const [query, setQuery] = useState("");
-  const [imageUri, setImageUri] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [dialog, setDialog] = useState(null);
-  const [showGuidelines, setShowGuidelines] = useState(true);
+  const [mode,          setMode]          = useState("text");
+  const [query,         setQuery]         = useState("");
+  const [imageUri,      setImageUri]      = useState("");
+  const [loading,       setLoading]       = useState(false);
+  const [dialog,        setDialog]        = useState(null);
+  const [showGuidelines,setShowGuidelines]= useState(true);
+
+  // ✅ Real API hook — make sure this hook does NOT return sample/mock data
+  const { mutateAsync } = useEconomicsPaper2();
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -62,37 +65,47 @@ export default function EconomicsPaperTwoSectionBScreen() {
   };
 
   const handleSubmit = async () => {
-    const hasText = !!query.trim();
+    const hasText  = !!query.trim();
     const hasImage = !!imageUri;
 
     if (mode === "text" && !hasText) {
-      setDialog({
-        title: "Add your question",
-        message: "Type or paste the Section B question including command words and marks.",
-      });
+      setDialog({ title: "Add your question", message: "Type or paste the Section B question." });
       return;
     }
-
     if (mode === "image" && !hasImage) {
-      setDialog({
-        title: "Add an image",
-        message: "Upload a photo of your Section B question paper.",
-      });
+      setDialog({ title: "Add an image", message: "Upload a Section B question image." });
       return;
     }
 
-    setLoading(true);
-    await savePaper2Session({
-      section: "B",
-      inputMode: mode,
-      query: query.trim(),
-      imageUris: hasImage ? [imageUri] : [],
-    });
+    try {
+      setLoading(true);
 
-    setTimeout(() => {
+      // ✅ 1. Real API call
+      const response = await mutateAsync({
+        section: "B",
+        query:   hasText  ? query.trim() : "",
+        image:   hasImage ? imageUri     : null,
+      });
+
+      // ✅ 2. Save to Section B slot ONLY
+      await savePaper2Session({
+        section:   "B",
+        inputMode: mode,
+        query:     query.trim(),
+        imageUris: hasImage ? [imageUri] : [],
+        apiResult: response,   // ← real API response, never sample data
+      });
+
+      // ✅ 3. Navigate with section=B param so result screen loads the right slot
+      router.push("/economics/paper-2/result?section=B");
+    } catch (err) {
+      setDialog({
+        title:   "Error",
+        message: err?.response?.data?.message || "Server error occurred",
+      });
+    } finally {
       setLoading(false);
-      openSubjectResult(router, "/economics/paper-2/result");
-    }, 900);
+    }
   };
 
   const fillSample = () => setQuery(SAMPLE_PAPER2_SECTION_B_QUERY);
@@ -121,6 +134,7 @@ export default function EconomicsPaperTwoSectionBScreen() {
               compact
             />
 
+            {/* ── Guidelines card ── */}
             <View style={styles.guidelinesCard}>
               <Pressable
                 onPress={() => setShowGuidelines(!showGuidelines)}
@@ -147,7 +161,7 @@ export default function EconomicsPaperTwoSectionBScreen() {
                   <Text style={styles.guidelinesIntro}>
                     To receive a structured, O-Level mark scheme essay response:
                   </Text>
-                  
+
                   <View style={styles.guidelineRow}>
                     <MaterialCommunityIcons name="check-circle" size={16} color={Colors.primary} style={styles.guidelineIcon} />
                     <Text style={styles.guidelineText}>
@@ -175,6 +189,7 @@ export default function EconomicsPaperTwoSectionBScreen() {
               )}
             </View>
 
+            {/* ── Mode tabs ── */}
             <View style={styles.modeRow}>
               {MODES.map((m) => {
                 const active = mode === m.id;
@@ -197,6 +212,7 @@ export default function EconomicsPaperTwoSectionBScreen() {
               })}
             </View>
 
+            {/* ── Input area ── */}
             {mode === "text" ? (
               <SectionCard label="Your question" icon="help-circle-outline">
                 <QuestionInput
@@ -235,6 +251,7 @@ export default function EconomicsPaperTwoSectionBScreen() {
               </SectionCard>
             )}
 
+            {/* ── Submit ── */}
             <View style={styles.submitWrap}>
               {loading ? (
                 <AppLoader

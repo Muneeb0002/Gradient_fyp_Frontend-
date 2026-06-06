@@ -3,27 +3,26 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import InputField from "../../../components/auth/InputField";
-import PrimaryButton from "../../../components/auth/PrimaryButton";
 import AdminScreenShell from "../../../components/admin/AdminScreenShell";
 import PortalPageHeader from "../../../components/admin/PortalPageHeader";
+import InputField from "../../../components/auth/InputField";
+import PrimaryButton from "../../../components/auth/PrimaryButton";
 import SectionCard from "../../../components/shared/SectionCard";
-import { PORTAL_ALERTS } from "../../../constants/portalAlertMessages";
 import Colors from "../../../constants/Colors";
-import Typography from "../../../constants/Typography";
 import {
   validatePortalAdminEmail,
   validatePortalAdminName,
   validateStudentSignupPassword,
 } from "../../../lib/formValidation";
-import { usePortalAdmins } from "../../../src/context/PortalAdminsContext";
 import usePortalAlert from "../../../src/hooks/usePortalAlert";
+
+
+import { useCreateAdmin } from "../../../src/hooks/useFetchAdminUsers";
 
 const STEPS = ["Identity", "Credentials", "Review"];
 
 export default function CreateAdminScreen() {
   const router = useRouter();
-  const { addAdmin } = usePortalAdmins();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     firstName: "",
@@ -33,14 +32,15 @@ export default function CreateAdminScreen() {
   });
   const [errors, setErrors] = useState({});
   const { showAlert, AlertModal } = usePortalAlert();
-  const [submitting, setSubmitting] = useState(false);
+
+  // 1. Mutation hook initialize kiya (isPending real loading state handle karega)
+  const { mutate, isPending } = useCreateAdmin();
 
   useFocusEffect(
     useCallback(() => {
       setStep(0);
       setForm({ firstName: "", lastName: "", email: "", password: "" });
       setErrors({});
-      setSubmitting(false);
     }, []),
   );
 
@@ -69,16 +69,42 @@ export default function CreateAdminScreen() {
   };
 
   const handleSubmit = () => {
-    if (!validateStep(0) || !validateStep(1)) return;
-    setSubmitting(true);
-    setTimeout(() => {
-      addAdmin(form);
-      setSubmitting(false);
-      const name = `${form.firstName} ${form.lastName}`;
-      const { title, message } = PORTAL_ALERTS.adminCreated(name);
-      showAlert(title, message, "Done", () => router.back());
-    }, 500);
-  };
+  mutate(
+    {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      password: form.password,
+      createdBy: "Gradiant@gmail.com",
+      createdByPass: "ABC123.@",
+    },
+    {
+      onSuccess: (res) => {
+        console.log("✅ ADMIN CREATED:", res);
+
+        showAlert(
+          "Success",
+          res?.message || "Admin created successfully"
+        );
+
+        router.back();
+      },
+
+      onError: (err) => {
+        console.log(
+          "❌ ERROR:",
+          err?.response?.data
+        );
+
+        showAlert(
+          "Error",
+          err?.response?.data?.message ||
+            "Admin create failed"
+        );
+      },
+    }
+  );
+};
 
   return (
     <AdminScreenShell>
@@ -187,7 +213,7 @@ export default function CreateAdminScreen() {
       ) : null}
 
       <View style={styles.actions}>
-        {step > 0 ? (
+        {step > 0 && !isPending ? (
           <PrimaryButton
             title="Back"
             handlePress={() => setStep((s) => Math.max(0, s - 1))}
@@ -195,14 +221,14 @@ export default function CreateAdminScreen() {
         ) : null}
         <PrimaryButton
           title={
-            submitting
+            isPending
               ? "Creating..."
               : step === STEPS.length - 1
                 ? "Create administrator"
                 : "Continue"
           }
           handlePress={goNext}
-          isLoading={submitting}
+          isLoading={isPending} // Tanstack query ki default loading pass kar di bhae
         />
       </View>
 

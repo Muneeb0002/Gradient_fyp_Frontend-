@@ -9,58 +9,47 @@ import {
   Text,
   View,
 } from "react-native";
+
 import AdminScreenShell from "../../../components/admin/AdminScreenShell";
 import ListScreenToolbar from "../../../components/admin/ListScreenToolbar";
 import PortalPageHeader from "../../../components/admin/PortalPageHeader";
 import StudentPasswordModal from "../../../components/admin/StudentPasswordModal";
 import ThemedConfirmModal from "../../../components/shared/ThemedConfirmModal";
+
 import Colors from "../../../constants/Colors";
 import Typography from "../../../constants/Typography";
 import { PORTAL_ALERTS } from "../../../constants/portalAlertMessages";
-import { usePortalStudents } from "../../../src/context/PortalStudentsContext";
 import usePortalAlert from "../../../src/hooks/usePortalAlert";
 
-function UserRow({ item, onEdit, onDelete, onPassword }) {
+// ✅ REAL API HOOK
+import { useFetchUsers } from "../../../src/hooks/useFetchAdminUsers";
+
+function UserRow({ item, onDelete, onPassword }) {
   return (
     <View style={styles.row}>
-      <Pressable style={styles.mainTap} onPress={() => onEdit(item)}>
-        <View style={styles.avatar}>
-          <Text style={styles.initials}>
-            {item.firstName[0]}
-            {item.lastName[0]}
-          </Text>
-        </View>
-        <View style={styles.info}>
-          <Text style={styles.name}>
-            {item.firstName} {item.lastName}
-          </Text>
-          <Text style={styles.email}>{item.email}</Text>
-          <Text style={styles.date}>Joined {item.joinedAt}</Text>
-        </View>
-        <View
-          style={[
-            styles.badge,
-            item.isVerified ? styles.badgeVerified : styles.badgePending,
-          ]}
-        >
-          <Text
-            style={[
-              styles.badgeText,
-              item.isVerified && styles.badgeTextVerified,
-            ]}
-          >
-            {item.isVerified ? "Verified" : "Pending"}
-          </Text>
-        </View>
-      </Pressable>
+      <View style={styles.avatar}>
+        <Text style={styles.initials}>
+          {item.firstName?.[0]}
+          {item.lastName?.[0]}
+        </Text>
+      </View>
+
+      <View style={styles.info}>
+        <Text style={styles.name}>
+          {item.firstName} {item.lastName}
+        </Text>
+        <Text style={styles.email}>{item.email}</Text>
+        <Text style={styles.date}>
+          Joined {new Date(item.createdAt).toDateString()}
+        </Text>
+      </View>
+
       <View style={styles.actions}>
-        <Pressable onPress={() => onPassword(item)} hitSlop={8} style={styles.actionBtn}>
+        <Pressable onPress={() => onPassword(item)}>
           <MaterialCommunityIcons name="key-outline" size={20} color={Colors.accent} />
         </Pressable>
-        <Pressable onPress={() => onEdit(item)} hitSlop={8} style={styles.actionBtn}>
-          <MaterialCommunityIcons name="pencil-outline" size={20} color={Colors.textSecondary} />
-        </Pressable>
-        <Pressable onPress={() => onDelete(item)} hitSlop={8} style={styles.actionBtn}>
+
+        <Pressable onPress={() => onDelete(item)}>
           <MaterialCommunityIcons name="trash-can-outline" size={20} color={Colors.danger} />
         </Pressable>
       </View>
@@ -70,113 +59,97 @@ function UserRow({ item, onEdit, onDelete, onPassword }) {
 
 export default function SuperAdminUsersScreen() {
   const router = useRouter();
-  const { students, removeStudent, resetStudents, updateStudentPassword } =
-    usePortalStudents();
+
   const [query, setQuery] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [passwordTarget, setPasswordTarget] = useState(null);
+
   const { showAlert, AlertModal } = usePortalAlert();
 
+  // ✅ API CALL
+  const { data, isLoading, isError, refetch } = useFetchUsers();
+
+  const users = data?.data || [];
+
+  console.log("📦 USERS IN SCREEN:", users);
+
+  // SEARCH
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return students;
-    return students.filter(
-      (u) =>
-        u.email.toLowerCase().includes(q) ||
-        `${u.firstName} ${u.lastName}`.toLowerCase().includes(q),
-    );
-  }, [students, query]);
+    if (!q) return users;
 
-  const verifiedCount = students.filter((u) => u.isVerified).length;
+    return users.filter(
+      (u) =>
+        u.email?.toLowerCase().includes(q) ||
+        `${u.firstName} ${u.lastName}`.toLowerCase().includes(q)
+    );
+  }, [users, query]);
 
   return (
     <AdminScreenShell scroll={false} contentStyle={styles.shell}>
       <PortalPageHeader
-        onBack={() => router.replace("/super-admin")}
         title="Students"
-        subtitle={`${students.length} registered · ${verifiedCount} verified`}
+        subtitle={`${users.length} users`}
         icon="school"
         accent="#60A5FA"
-        rightAction={
-          <Pressable
-            onPress={() => router.push("/super-admin/users/create")}
-            style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.88 }]}
-          >
-            <MaterialCommunityIcons name="plus" size={22} color={Colors.white} />
-          </Pressable>
-        }
+        onBack={() => router.back()}
       />
 
       <ListScreenToolbar
         total={filtered.length}
-        label="students"
+        label="users"
         query={query}
         onChangeQuery={setQuery}
-        placeholder="Search students"
+        placeholder="Search users"
       />
 
+      {/* LOADING */}
+      {isLoading && (
+        <Text style={{ color: "white", textAlign: "center", marginTop: 20 }}>
+          Loading users...
+        </Text>
+      )}
+
+      {/* ERROR */}
+      {isError && (
+        <Text style={{ color: "red", textAlign: "center", marginTop: 20 }}>
+          Failed to load users
+        </Text>
+      )}
+
+      {/* LIST */}
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <UserRow
             item={item}
-            onEdit={(s) => router.push(`/super-admin/users/${s.id}`)}
             onDelete={setPendingDelete}
-            onPassword={(s) => setPasswordTarget(s)}
+            onPassword={setPasswordTarget}
           />
         )}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              setTimeout(() => {
-                resetStudents();
-                setRefreshing(false);
-              }, 600);
-            }}
-            tintColor={Colors.accent}
-          />
-        }
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No students found.</Text>
-          </View>
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
         }
       />
 
-      <Pressable
-        onPress={() => router.push("/super-admin/users/create")}
-        style={({ pressed }) => [styles.fab, pressed && { opacity: 0.92 }]}
-      >
-        <MaterialCommunityIcons name="account-plus" size={24} color={Colors.white} />
-        <Text style={styles.fabText}>Add student</Text>
-      </Pressable>
-
+      {/* DELETE */}
       <ThemedConfirmModal
         visible={!!pendingDelete}
-        title="Remove student"
+        title="Delete user"
         message={
           pendingDelete
-            ? `Remove ${pendingDelete.firstName} ${pendingDelete.lastName} from the platform?`
+            ? `Delete ${pendingDelete.firstName} ${pendingDelete.lastName}?`
             : ""
         }
-        destructive
-        confirmLabel="Remove"
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {
-          if (!pendingDelete) return;
-          const name = `${pendingDelete.firstName} ${pendingDelete.lastName}`;
-          removeStudent(pendingDelete.id);
+          console.log("DELETE USER:", pendingDelete);
           setPendingDelete(null);
-          const { title, message } = PORTAL_ALERTS.studentRemoved(name);
-          showAlert(title, message);
         }}
       />
 
+      {/* PASSWORD */}
       <StudentPasswordModal
         visible={!!passwordTarget}
         studentName={
@@ -186,12 +159,8 @@ export default function SuperAdminUsersScreen() {
         }
         onClose={() => setPasswordTarget(null)}
         onSave={(pass) => {
-          if (!passwordTarget) return;
-          const name = `${passwordTarget.firstName} ${passwordTarget.lastName}`;
-          updateStudentPassword(passwordTarget.id, pass);
+          console.log("NEW PASSWORD:", pass);
           setPasswordTarget(null);
-          const { title, message } = PORTAL_ALERTS.passwordUpdated(name);
-          showAlert(title, message);
         }}
       />
 

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import Colors from "../../constants/Colors";
 import Typography from "../../constants/Typography";
 
+
 const CARD_HEIGHT = 108;
 
 export default function StatGrid({ items, columns = 2 }) {
