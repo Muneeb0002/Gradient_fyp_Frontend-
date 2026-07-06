@@ -5,7 +5,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -24,6 +23,8 @@ import ThemedMessageModal from "../../components/shared/ThemedMessageModal";
 import Colors from "../../constants/Colors";
 import { openSubjectResult } from "../../lib/subjectNavigation";
 import useGraphAnalysis from "../../src/hooks/useMathsGraphAnalysis";
+
+
 
 export default function MathsImageQuestionScreen() {
   const router = useRouter();
@@ -64,12 +65,12 @@ export default function MathsImageQuestionScreen() {
     const match = /\.(\w+)$/.exec(filename || "");
     const type = match ? `image/${match[1]}` : `image/jpeg`;
 
-    // ✅ API Mutation call with image details
+    // API Mutation call with image details
     analyzeGraph(
       { uri, name: filename, type },
       {
         onSuccess: (apiResponse) => {
-          // ✅ API ka data router ke params mein stringify karke solution screen par forward kar diya
+          // API ka data router ke params mein stringify karke solution screen par forward kar diya
           openSubjectResult(router, {
             pathname: "/maths/solution-image",
             params: {

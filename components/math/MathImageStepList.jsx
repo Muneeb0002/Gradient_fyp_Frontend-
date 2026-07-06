@@ -1,5 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   StyleSheet,
   Text,
@@ -7,12 +9,37 @@ import {
   View,
 } from "react-native";
 import Colors from "../../constants/Colors";
-import { MOCK_MATH_CONCEPTS } from "../../src/mocks/mathImageSolution.mock";
+import { fetchConceptByKey } from "../../src/maths.api.js/fetchConceptByKey.api";
 
 function ConceptPanel({ conceptKey, onClose }) {
-  const concept = MOCK_MATH_CONCEPTS[conceptKey];
+  // react-query handles the fetch, loading state, error state, and caches
+  // the result so re-opening the same concept doesn't hit the API again.
+  const {
+    data: concept,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["mathConcept", conceptKey],
+    queryFn: () => fetchConceptByKey(conceptKey),
+    enabled: !!conceptKey,
+    staleTime: 1000 * 60 * 30, // concepts are static-ish, cache for 30 min
+  });
 
-  if (!concept) {
+  if (isLoading) {
+    return (
+      <View style={styles.conceptBox}>
+        <View style={styles.conceptHeaderRow}>
+          <Text style={styles.conceptSectionTitle}>Concept</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={8}>
+            <Text style={styles.conceptClose}>Close</Text>
+          </TouchableOpacity>
+        </View>
+        <ActivityIndicator color={Colors.accent} style={{ marginTop: 6 }} />
+      </View>
+    );
+  }
+
+  if (isError || !concept) {
     return (
       <View style={styles.conceptBox}>
         <Text style={styles.conceptError}>Could not load this concept.</Text>
