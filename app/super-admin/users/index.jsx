@@ -153,6 +153,8 @@ export default function SuperAdminUsersScreen() {
             ? `Delete ${pendingDelete.firstName} ${pendingDelete.lastName}?`
             : ""
         }
+        confirmLabel="Delete"
+        destructive={true}
         onCancel={() => !isDeleting && setPendingDelete(null)}
         onConfirm={confirmDelete}
         loading={isDeleting}
